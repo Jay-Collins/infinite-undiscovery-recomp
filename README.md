@@ -16,6 +16,18 @@ No game files, DLC, ISOs, saves or other copyrighted game assets are distributed
 
 ---
 
+## Project Status — Frozen / Hibernating
+
+Infinite Undiscovery Recomp is currently in a frozen / hibernating state.
+
+Active development is paused for the foreseeable future. The project is not abandoned, but no active feature development, bug fixing, compatibility work, support requests, or release schedule is currently planned.
+
+The current release remains available, and the repository is being preserved in a stable state with its existing features, documentation, validated functionality, known issues, and historical work intact.
+
+Development may resume in the future if new contributors, major ReXGlue/XenonRecomp improvements, renderer/backend developments, or other technically significant changes justify reopening the project.
+
+While the project is frozen, please do not expect immediate fixes, feature requests, or new releases.
+
 ## Download
 
 The current public Release Candidate is:
@@ -87,7 +99,7 @@ The recomp can currently:
 - provide Session / System diagnostic information
 - use IU Save Bridge as the official portable save-editor companion
 
-The current public release remains a **Release Candidate** because full-game completion and later-game validation are still ongoing.
+The current public release remains a **Release Candidate** because full-game completion and later-game validation remain incomplete.
 
 ---
 
@@ -273,7 +285,7 @@ Current multi-disc validation therefore consists of two separate states:
 - runtime Disc 2 mounting
 - real in-game Disc 1 -> Disc 2 transition
 
-### Still under validation
+### Pending validation
 
 - complete Disc 2 progression
 - later-game runtime behavior
@@ -523,7 +535,7 @@ Community reports, alternative reproduction cases and diagnostic information are
 
 ## Known limitations
 
-The following remain under active validation:
+The following remain pending validation:
 
 - complete full-game playthrough
 - complete Disc 2 progression
