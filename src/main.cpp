@@ -6,6 +6,11 @@
 #include "infinite_undiscovery_app.h"
 #include "orb_visibility_fix.h"
 #include "fiber_lr.h"
+#include "frame_counter_hook.h"
+#include "frame_rate.h"
+#if IU_ENABLE_TIMING_EXPERIMENT
+#include "frame_timing_experiment.h"
+#endif
 #if IU_ENABLE_DIAGNOSTICS
 #include "vesplume_diag.h"
 #include "orb_move_diag.h"

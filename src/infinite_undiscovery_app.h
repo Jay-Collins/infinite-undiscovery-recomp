@@ -19,6 +19,14 @@
 #include "asset_dlc.h"
 #include "portable_setup.h"
 #include "version.h"
+#include "game_menu.h"
+#include "player_overlay.h"
+#include <rex/input/sdl/sdl_input_driver.h>
+#include <rex/input/xinput/xinput_input_driver.h>
+#include <rex/input/mnk/mnk_input_driver.h>
+#include <rex/input/nop/nop_input_driver.h>
+#include <rex/input/input_system.h>
+#include <atomic>
 #include <rex/ui/keybinds.h>
 #if IU_ENABLE_DIAGNOSTICS
 #include "community_debug_dialog.h"
@@ -40,6 +48,52 @@ REXCVAR_DECLARE(bool, pso_telemetry);
 class InfiniteUndiscoveryApp : public rex::ReXApp {
  public:
   using rex::ReXApp::ReXApp;
+
+  void OnConfigureFonts(ImFontAtlas* atlas) override {
+    // Use the installed Windows UI font; no font file is redistributed.
+    wchar_t windows_dir[MAX_PATH]{};
+    ImFont* font=nullptr;
+    if(GetWindowsDirectoryW(windows_dir,MAX_PATH)) {
+      const auto path=std::filesystem::path(windows_dir)/"Fonts"/"segoeui.ttf";
+      if(std::filesystem::is_regular_file(path)) font=atlas->AddFontFromFileTTF(path.string().c_str(),18.0f);
+    }
+    if(!font) { ImFontConfig config; config.SizePixels=18; font=atlas->AddFontDefault(&config); }
+    ImGui::GetIO().FontDefault=font;
+  }
+  void OnConfigureStyle(ImGuiStyle& style, rex::ui::Style&) override {
+    ImGui::StyleColorsDark(&style);
+  }
+
+  iu::ui::MenuSettings menu_settings_;
+  std::unique_ptr<iu::ui::GameMenu> game_menu_;
+  std::atomic<bool> game_menu_open_{false};
+  iu::player::ControllerDriver* controller_driver_=nullptr;
+  iu::ui::DisplayWindow display_window_;
+  std::unique_ptr<iu::ui::PlayerOverlay> player_overlay_;
+
+  void CloseGameMenu() {
+    if(controller_driver_) controller_driver_->SuppressUntilReleased();
+
+    game_menu_.reset();
+    game_menu_open_.store(false, std::memory_order_relaxed);
+  }
+
+  void OpenGameMenu(iu::ui::MenuTab tab = iu::ui::MenuTab::Settings) {
+    if (!game_menu_ && imgui_drawer()) {
+      game_menu_ = std::make_unique<iu::ui::GameMenu>(
+          imgui_drawer(), immediate_drawer(), runtime(), &achievements(), menu_settings_,
+          portable_root_ / "cache" / "runtime.toml", portable_root_.filename().string(),
+          [this] { app_context().CallInUIThreadDeferred([this] { CloseGameMenu(); }); },
+          [this] { app_context().CallInUIThreadDeferred([this] { PromptReturnToProfileManager(true); }); },
+          [this] { app_context().CallInUIThreadDeferred([this] { PromptQuitGame(true); }); },
+          display_window_, [this](std::function<void()> change) {
+            app_context().CallInUIThreadDeferred([this, change=std::move(change)] { display_window_.Apply(change); });
+          });
+      game_menu_open_.store(true, std::memory_order_relaxed);
+      if(controller_driver_) controller_driver_->StopRumble();
+    }
+    if (game_menu_) game_menu_->Select(tab);
+  }
 
   static std::unique_ptr<rex::ui::WindowedApp> Create(
       rex::ui::WindowedAppContext& ctx) {
@@ -117,6 +171,24 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   // Override virtual hooks for customization:
   void OnPreSetup(rex::RuntimeConfig& config) override {
     config.gpu_plugin = "xenos";
+    config.input_factory=[this](bool tool_mode) {
+      auto input=std::make_unique<rex::input::InputSystem>(nullptr);
+      if(!tool_mode) {
+        std::unique_ptr<rex::input::InputDriver> physical;
+        if(rex::cvar::GetFlagByName("input_backend")=="xinput")
+          physical=std::make_unique<rex::input::xinput::XinputInputDriver>(nullptr,0);
+        else physical=std::make_unique<rex::input::sdl::SDLInputDriver>(nullptr,0);
+        auto controller=std::make_unique<iu::player::ControllerDriver>(std::move(physical));
+        if(controller->Setup()==0) {
+          controller_driver_=controller.get(); input->AddDriver(std::move(controller));
+        }
+        auto mnk=std::make_unique<rex::input::mnk::MnkInputDriver>(nullptr,0);
+        if(mnk->Setup()==0) input->AddDriver(std::move(mnk));
+      }
+      input->AddDriver(std::make_unique<rex::input::nop::NopInputDriver>(nullptr,tool_mode?0:1));
+      input->SetDeviceAssignment(std::make_unique<rex::input::SlotAssignment>());
+      return input;
+    };
 #if IU_ENABLE_DIAGNOSTICS
     vb::log("PRE_SETUP gpu_plugin=xenos synthetic_ticker=absent");
     pso_diag::pre_setup();
@@ -125,6 +197,21 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   // void OnLoadXexImage(std::string& xex_image) override {}
   // void OnPostLoadXexImage() override {}
   void OnPostSetup() override {
+    iu::player::InitializeOptions();
+    display_window_.Initialize(window(),[this] { menu_settings_.MarkDisplayApplied(); });
+    player_overlay_=std::make_unique<iu::ui::PlayerOverlay>(imgui_drawer(),window(),controller_driver_,
+        [this] { return game_menu_open_.load(std::memory_order_relaxed); },
+        [this] { app_context().CallInUIThreadDeferred([this] { if(game_menu_) CloseGameMenu(); else OpenGameMenu(); }); });
+    menu_settings_.CaptureStartup();
+    if (auto* input = static_cast<rex::input::InputSystem*>(runtime()->input_system())) {
+      // The SDK's default callback only knows about its own overlay pointers.
+      // Include the app menu so clicks/keys never also trigger guest actions.
+      input->SetActiveCallback([this] {
+        if(window() && !window()->HasFocus()) return false;
+        if (game_menu_open_.load(std::memory_order_relaxed)) return false;
+        return !imgui_drawer() || !imgui_drawer()->GetIO().WantCaptureMouse;
+      });
+    }
 #if IU_ENABLE_DIAGNOSTICS
     vb::host_runtime(runtime(), "POST_SETUP");
     pso_diag::install(runtime());
@@ -170,8 +257,8 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
 
   bool pending_relaunch_profile_manager_{false};
 
-  void PromptReturnToProfileManager() {
-    int choice = iu::portable::Dialog(
+  void PromptReturnToProfileManager(bool confirmed=false) {
+    int choice = confirmed ? IDYES : iu::portable::Dialog(
         iu::portable::Text(L"Gestor de perfiles de contenido"),
         iu::portable::Text(L"¿Volver al Gestor de Perfiles? Se cerrara la sesion de juego actual."),
         {{IDYES, iu::portable::Text(L"Si")}, {IDNO, iu::portable::Text(L"No")}});
@@ -185,8 +272,8 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
     }
   }
 
-  void PromptQuitGame() {
-    int choice = iu::portable::Dialog(
+  void PromptQuitGame(bool confirmed=false) {
+    int choice = confirmed ? IDYES : iu::portable::Dialog(
         L"Infinite Undiscovery",
         iu::portable::Text(L"¿Salir de Infinite Undiscovery?"),
         {{IDYES, iu::portable::Text(L"Si")}, {IDNO, iu::portable::Text(L"No")}});
@@ -227,6 +314,15 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   }
 
   void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {
+    rex::ui::UnregisterBind("bind_settings");
+    rex::ui::UnregisterBind("bind_achievements");
+    rex::ui::RegisterBind("bind_iu_menu", "F4", "Open / close game menu", [this] {
+      if (game_menu_) CloseGameMenu();
+      else OpenGameMenu();
+    });
+    rex::ui::RegisterBind("bind_iu_achievements", "F7", "Open achievements tab", [this] {
+      OpenGameMenu(iu::ui::MenuTab::Achievements);
+    });
 #if !IU_ENABLE_DIAGNOSTICS
     rex::ui::UnregisterBind("bind_debug_overlay");
     rex::ui::UnregisterBind("bind_console");
@@ -267,6 +363,10 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   // std::unique_ptr<rex::ui::AchievementNotificationDialog>
   // CreateAchievementNotificationDialog() override;
   void OnShutdown() override {
+    rex::ui::UnregisterBind("bind_iu_menu");
+    rex::ui::UnregisterBind("bind_iu_achievements");
+    CloseGameMenu();
+    player_overlay_.reset();
 #if IU_ENABLE_DIAGNOSTICS
     iu::disc2_io::Shutdown();
     rex::ui::UnregisterBind("bind_iu_community_debug");

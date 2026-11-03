@@ -27,8 +27,21 @@ in this fork.
 Controls and saves
 ------------------
 Use an Xbox-compatible controller for gameplay.
-F4: runtime settings. F7: achievements.
+F4: open / close the unified menu. F7: open its Achievements tab.
 F10: return to the Content Profile Manager. F12: quit (with confirmation).
+
+The menu has Settings, Controls, Achievements and Game tabs. The Game tab
+also provides profile-manager and quit actions. Save settings keeps changes
+for the active profile; starred settings require a restart. Gameplay input
+is blocked while the overlay is open, but the game continues running.
+Aspect ratio preserves the original picture or stretches it to the display.
+Display resolution presets apply in windowed mode; borderless fullscreen
+uses the desktop resolution. Internal resolution provides uniform 1-8x
+native rendering scales and requires a restart.
+Graphics also offers 30 FPS (original) or 60 FPS (experimental). Save and
+restart to apply. Keep VSync enabled. First-use shader/asset loading hitches
+may remain; videos retain their own playback rate. Full-game compatibility
+at 60 FPS is not yet verified.
 
 Developer diagnostics, trace recorders, Save Anywhere and movement/recovery
 tools are omitted. The runtime debug overlay and console shortcuts are

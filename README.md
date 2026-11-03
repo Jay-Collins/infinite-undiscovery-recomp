@@ -40,14 +40,22 @@ Each content profile stores its assets, saves, shaders, cache, logs and configur
 
 ## Utility controls
 
-The public release keeps these default shortcuts:
+Current source builds combine player utilities into one tabbed menu:
 
 | Key | Action |
 | --- | --- |
-| F4 | Runtime settings |
-| F7 | Achievements |
+| F4 | Open / close the unified menu |
+| F7 | Open its Achievements tab |
 | F10 | Return to the Content Profile Manager |
 | F12 | Quit the game (with confirmation) |
+
+The top tabs are **Settings**, **Controls**, **Achievements** and **Game**. Settings cover display, graphics and audio; Controls configures keyboard/mouse emulation. The Game tab provides profile-manager and quit actions. Use **Save settings** to keep changes for the active content profile; starred settings require a restart. The overlay blocks gameplay input while open, but does not pause the game.
+
+Display settings separate **Aspect ratio**, **Display resolution** and **Internal resolution**. Aspect ratio preserves the original picture or stretches it to the display; it does not add an ultrawide field of view. Borderless fullscreen uses the desktop resolution, while windowed mode offers size presets. Internal resolution offers uniform 1–8× native scaling, independent of window size.
+
+Graphics offers **30 FPS (original)** and **60 FPS (experimental)**. Save settings and restart to apply the frame-rate target. Keep VSync enabled. The 60 FPS option uses the game's existing elapsed-time scheduler; first-use shader/asset loading hitches may remain, and videos retain their own playback rate. Full-game compatibility at 60 FPS is not yet verified.
+
+The published v1.0.0-rc2 download still uses separate F4 settings and F7 achievements windows; the unified menu and 60 FPS option are source-build changes pending a new release.
 
 The release omits the diagnostic/recovery menu, Save Anywhere, Safe Step and trace recorders. The SDK debug-overlay and console shortcuts are unregistered. Normal runtime error logging remains available.
 
