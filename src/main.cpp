@@ -3,8 +3,10 @@
 #include "generated/default/infinite_undiscovery_init.h"
 
 #include "infinite_undiscovery_app.h"
+#include "orb_visibility_fix.h"
 #include "fiber_lr.h"
 #include "vesplume_diag.h"
+#include "orb_move_diag.h"
 #include "iu_trace_points.h"
 
 REXCVAR_DEFINE_BOOL(asset_setup, false, "Content",

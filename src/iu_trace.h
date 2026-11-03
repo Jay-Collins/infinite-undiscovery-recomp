@@ -78,11 +78,15 @@ inline uint32_t parse_mask(const char* spec) {
   return mask;
 }
 
-// Runtime enabled-category mask. Initialized from IU_TRACE if set, otherwise 0 (OFF).
+// Read launch settings once; recorder controls own the live mask thereafter.
+// The legacy path enables Vesplume at launch, but StopRecording still disables it.
 inline std::atomic<uint32_t>& runtime_mask() {
   static std::atomic<uint32_t> m{[]() {
     const char* e = std::getenv("IU_TRACE");
-    return e ? parse_mask(e) : 0u;
+    uint32_t initial = e ? parse_mask(e) : 0u;
+    const char* legacy = std::getenv("IU_VESPLUME_TRACE_PATH");
+    if (legacy && legacy[0]) initial |= kVesplume;
+    return initial;
   }()};
   return m;
 }
@@ -243,9 +247,9 @@ inline void ensure_started() {
       }
       if (session().close_requested.exchange(false, std::memory_order_acq_rel)) {
         flush_files(rr);
-        if (rr.files[kDestMain]) {
-          std::fclose(rr.files[kDestMain]);
-          rr.files[kDestMain] = nullptr;
+        for (auto*& file : rr.files) {
+          if (file) std::fclose(file);
+          file = nullptr;
         }
       }
       if (any) flush_files(rr);
@@ -295,18 +299,31 @@ inline void emit_line_to(uint8_t dest, const char* line) {
 }
 
 // Standard record: "[   123.456 ms] #000042 tid=1234 CATEGORY message".
-inline void emit(uint32_t cat, const char* fmt, ...) {
+inline void emit_v(uint32_t cat, const char* fmt, va_list ap) {
   char body[detail::kText];
-  va_list ap;
-  va_start(ap, fmt);
   std::vsnprintf(body, sizeof(body), fmt, ap);
-  va_end(ap);
   auto& r = detail::ring();
   const unsigned long long n = r.seq.fetch_add(1, std::memory_order_relaxed) + 1;
   char line[detail::kText + 96];
   std::snprintf(line, sizeof(line), "[%10.3f ms] #%06llu tid=%lu %s %s", detail::now_ms(), n,
                 static_cast<unsigned long>(GetCurrentThreadId()), category_name(cat), body);
   emit_line_to(kDestMain, line);
+}
+
+inline void emit(uint32_t cat, const char* fmt, ...) {
+  if (!enabled(cat)) return;
+  va_list ap;
+  va_start(ap, fmt);
+  emit_v(cat, fmt, ap);
+  va_end(ap);
+}
+
+// Recorder metadata must survive category filtering (e.g. VESPLUME-only).
+inline void emit_control(const char* fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  emit_v(kGeneral, fmt, ap);
+  va_end(ap);
 }
 
 // ---- Runtime Trace Recorder Control -----------------------------------------
@@ -344,13 +361,13 @@ inline void StartRecording(uint32_t cat_mask = kAll) {
   session().rotate_requested.store(true, std::memory_order_release);
   runtime_mask().store(cat_mask, std::memory_order_release);
   detail::ensure_started();
-  emit(kGeneral, "---- IU TRACE RECORDER STARTED SESSION: %s (mask=0x%08X) ----", fname, cat_mask);
+  emit_control("---- IU TRACE RECORDER STARTED SESSION: %s (mask=0x%08X) ----", fname, cat_mask);
 }
 
 inline void StopRecording() {
   if (!IsRecording()) return;
   const double dur = (detail::now_ms() - session().start_time_ms) / 1000.0;
-  emit(kGeneral, "---- IU TRACE RECORDER STOPPED (duration=%.3f s) ----", dur);
+  emit_control("---- IU TRACE RECORDER STOPPED (duration=%.3f s) ----", dur);
   runtime_mask().store(0, std::memory_order_release);
   session().close_requested.store(true, std::memory_order_release);
 }
@@ -358,7 +375,7 @@ inline void StopRecording() {
 inline void AddMarker(const char* label = nullptr) {
   if (!IsRecording()) return;
   const uint32_t idx = session().marker_counter.fetch_add(1, std::memory_order_relaxed) + 1;
-  emit(kGeneral, "======================== [MARKER #%u: %s] ========================",
+  emit_control("======================== [MARKER #%u: %s] ========================",
        idx, (label && label[0]) ? label : "MANUAL_MARKER");
 }
 
@@ -375,7 +392,7 @@ inline uint8_t* host_ptr(uint8_t* base, uint32_t guest) {
 // True if [guest, guest+len) is committed + readable host memory. Only used on
 // the (already slow) enabled-trace path.
 inline bool readable(uint8_t* base, uint32_t guest, uint32_t len = 4) {
-  if (guest < 0x10000u) return false;
+  if (!base || guest < 0x10000u || uint64_t(guest) + len > 0x100000000ull) return false;
   const uint8_t* p = host_ptr(base, guest);
   MEMORY_BASIC_INFORMATION mbi;
   if (!VirtualQuery(p, &mbi, sizeof(mbi))) return false;

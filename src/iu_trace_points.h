@@ -8,6 +8,7 @@
 // category is disabled the wrapper is a straight pass-through.
 
 #include "iu_trace.h"
+#include "orb_interaction_diag.h"
 
 struct PPCContext;
 
@@ -236,6 +237,7 @@ loc_8263CC0C:
 extern "C" void __imp__sub_825B93F8(PPCContext& ctx, uint8_t* base);
 
 extern "C" void sub_825B93F8(PPCContext& ctx, uint8_t* base) {
+	iu::orb_interaction::observe_interaction_request(ctx);
 	using namespace iu::trace;
 	if (!enabled(kSavePoint)) {
 		__imp__sub_825B93F8(ctx, base);
