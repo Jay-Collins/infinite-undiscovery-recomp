@@ -1,4 +1,4 @@
-Infinite Undiscovery Recomp v1.0.0-rc1 - Third-Party Notices
+Infinite Undiscovery Recomp v1.0.0-rc2 - Third-Party Notices
 ============================================================
 
 The release ZIP redistributes two native binaries built from the ReXGlue
@@ -104,7 +104,7 @@ source plus the relinkable "work that uses the Library", a shared-library
 mechanism, or equivalent materials. That material is published alongside this
 release in a separate package:
 
-    InfiniteUndiscoveryRecomp-v1.0.0-rc1-LGPL-Compliance.zip
+    InfiniteUndiscoveryRecomp-v1.0.0-rc2-LGPL-Compliance.zip
 
 It contains the exact FFmpeg source (submodule commit
 0604b464c7cb4ebc94940cf1f324a3b26b87717c) and libmspack source (submodule commit
@@ -113,11 +113,16 @@ the ReXGlue objects and non-LGPL static libraries used to produce
 rexruntime.dll, the export definition, the exact link command, and scripts that
 rebuild the LGPL libraries and relink rexruntime.dll.
 
-The relink procedure was executed and verified for this release: rebuilding
-libmspack (with a local modification) and rebuilding FFmpeg's libavutil from the
-provided sources, then relinking, both produced a rexruntime.dll with the
-identical 10,169-symbol export set, and the relinked DLL was confirmed to run
-the game.
+For this fork, the SDK includes the content-header enumeration patch recorded
+in SDK_CHANGES.patch in the compliance archive. The archive includes the SDK
+source and all vendored submodule sources, exact runtime link objects and
+libraries, exports.def, and relink/rebuild scripts. Its source-only submodule
+presence check is adapted to work without Git metadata.
+
+The bundled FFmpeg/libmspack sources were rebuilt and the runtime relinked;
+the relinked DLL retains the same 10,169 exported symbols. This verifies the
+relink procedure and export compatibility, not a full gameplay validation of
+user-modified library builds.
 
 This notice states facts taken from the upstream sources; it is not a legal
 opinion.

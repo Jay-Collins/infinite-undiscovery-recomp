@@ -8,6 +8,8 @@
 #
 # VERIFY_DIR : directory expected to contain rexruntime.dll / rexgpu-xenos.dll.
 # REQUIRE_ALL: when ON, both DLLs must be present.
+# EXPECTED_HASH_FILE: optional local-build.json produced by build-sdk.ps1;
+#                    omitted by the public release pipeline.
 #
 # The expected hashes come from the auditable checkout
 #   rexglue-sdk-v0.10.0-git  (tag v0.10.0, commit
@@ -24,6 +26,25 @@ set(_expect_rexgpu     "98CEF22E2AC1667F3A42910DD7474C0409BBEF7DB7599B3A48DF1EDB
 
 set(_old_rexruntime "E359209FB2B0570E693C966D4C1D99A82465D36EF70D033833FAE56ADB2F1B7A")
 set(_old_rexgpu     "0C23CFA23FC4FA5638DC8A3DC0DE87B1041D97705D4677774083F1F350CD8D89")
+
+if(DEFINED EXPECTED_HASH_FILE AND NOT EXPECTED_HASH_FILE STREQUAL "")
+    file(READ "${EXPECTED_HASH_FILE}" _local_build)
+    string(JSON _commit GET "${_local_build}" commit)
+    if(NOT _commit STREQUAL "f5337cdc947ff6d4c4196737e2c807a48f2a1fc2")
+        message(FATAL_ERROR "Local SDK provenance must record the pinned ReXGlue commit")
+    endif()
+    string(JSON _expect_rexruntime GET "${_local_build}" hashes "rexruntime.dll")
+    string(JSON _expect_rexgpu GET "${_local_build}" hashes "rexgpu-xenos.dll")
+    string(TOUPPER "${_expect_rexruntime}" _expect_rexruntime)
+    string(TOUPPER "${_expect_rexgpu}" _expect_rexgpu)
+    foreach(_hash IN ITEMS "${_expect_rexruntime}" "${_expect_rexgpu}")
+        string(LENGTH "${_hash}" _length)
+        if(NOT _length EQUAL 64 OR NOT _hash MATCHES "^[0-9A-F]+$")
+            message(FATAL_ERROR "Invalid SHA-256 in local SDK provenance")
+        endif()
+    endforeach()
+    message(STATUS "Verifying local source-built SDK hashes from ${EXPECTED_HASH_FILE}")
+endif()
 
 set(_found 0)
 

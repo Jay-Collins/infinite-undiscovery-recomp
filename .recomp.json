@@ -9,28 +9,31 @@
     "Windows"
   ],
   "toolchain": "ReXGlue / XenonRecomp",
-  "approach": "Native Windows x64 recompilation with integrated portable asset setup for supported PAL and NTSC-U game media.",
+  "approach": "Native Windows x64 recompilation with portable asset setup and the Orb of Patience pedestal fix.",
   "maintainers": [
     {
-      "name": "doc-haz",
-      "link": "https://github.com/doc-haz"
+      "name": "Jay-Collins",
+      "link": "https://github.com/Jay-Collins"
     }
   ],
   "links": [
     {
       "label": "Repository",
-      "url": "https://github.com/doc-haz/infinite-undiscovery-recomp"
+      "url": "https://github.com/Jay-Collins/infinite-undiscovery-recomp"
     },
     {
-      "label": "Latest release",
-      "url": "https://github.com/doc-haz/infinite-undiscovery-recomp/releases/latest"
+      "label": "Release candidate",
+      "url": "https://github.com/Jay-Collins/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc2"
+    },
+    {
+      "label": "Original project",
+      "url": "https://github.com/doc-haz/infinite-undiscovery-recomp"
     }
   ],
   "help": [
     "Full-game testing",
-    "PAL and NTSC-U testing",
-    "Later-game progression",
-    "Disc 1 to Disc 2 transition testing"
+    "Multi-edition testing",
+    "Later-game progression"
   ],
-  "notes": "Public v1.0.0 release. PAL and NTSC-U asset setup, Disc 1 and Disc 2 import, portable runtime paths, saves, and optional DLC installation are implemented. A complete playthrough has not yet been performed, and the real in-game Disc 1 to Disc 2 transition remains untested."
+  "notes": "Fork of doc-haz/infinite-undiscovery-recomp. v1.0.0-rc2 includes the in-game verified Orb of Patience pedestal fix. Public builds omit developer diagnostics and recovery tools. No game data or saves are distributed. Full-game completion and later Disc 2 progression remain unverified in this fork."
 }

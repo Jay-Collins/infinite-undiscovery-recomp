@@ -21,6 +21,7 @@
 // See docs/DEBUG-TRACE-FRAMEWORK.md for how to add a category / trace point.
 
 #include <windows.h>
+#include "guest_memory.h"
 
 #include <atomic>
 #include <cstdarg>
@@ -383,24 +384,8 @@ inline void AddMarker(const char* label = nullptr) {
 // Guest addresses translate to host according to memory mapping:
 // guest < 0xE0000000 -> base + guest
 // guest >= 0xE0000000 -> base + guest + 0x1000
-inline uint8_t* host_ptr(uint8_t* base, uint32_t guest) {
-  uintptr_t offset = (guest >= 0xE0000000u) ? (static_cast<uintptr_t>(guest) + 0x1000u)
-                                            : static_cast<uintptr_t>(guest);
-  return base + offset;
-}
-
-// True if [guest, guest+len) is committed + readable host memory. Only used on
-// the (already slow) enabled-trace path.
-inline bool readable(uint8_t* base, uint32_t guest, uint32_t len = 4) {
-  if (!base || guest < 0x10000u || uint64_t(guest) + len > 0x100000000ull) return false;
-  const uint8_t* p = host_ptr(base, guest);
-  MEMORY_BASIC_INFORMATION mbi;
-  if (!VirtualQuery(p, &mbi, sizeof(mbi))) return false;
-  if (mbi.State != MEM_COMMIT) return false;
-  if (mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD)) return false;
-  const uint8_t* end = static_cast<const uint8_t*>(mbi.BaseAddress) + mbi.RegionSize;
-  return p + len <= end;
-}
+using iu::guest_memory::host_ptr;
+using iu::guest_memory::readable;
 
 inline bool peek8(uint8_t* base, uint32_t g, uint8_t& out) {
   if (!readable(base, g, 1)) return false;

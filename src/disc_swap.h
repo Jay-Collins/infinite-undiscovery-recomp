@@ -23,8 +23,11 @@
 #include <rex/kernel/xboxkrnl/threading.h>
 
 #include "asset_setup.h"
+#include "build_config.h"
+#if IU_ENABLE_DIAGNOSTICS
 #include "iu_trace.h"
 #include "vblank_diag.h"
+#endif
 
 namespace iu::disc_swap {
 
@@ -63,11 +66,13 @@ inline void LogSwap(const char* fmt, ...) {
   vsnprintf(buf, sizeof(buf), fmt, args);
   va_end(args);
 
+#if IU_ENABLE_DIAGNOSTICS
   // Emit to iu_trace
   iu::trace::emit(iu::trace::kGeneral, "%s", buf);
 
   // Log to diagnostic.log
   vb::log("%s", buf);
+#endif
 
   // Print to console
   std::printf("[DISC_SWAP] %s\n", buf);

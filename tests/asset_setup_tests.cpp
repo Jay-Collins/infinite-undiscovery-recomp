@@ -105,7 +105,7 @@ int wmain(int argc,wchar_t** argv) {
       Check(iu::FindProfileById(iu::ContentProfileId::kJapan) != nullptr, "Japan profile not found by id");
       Check(iu::FindProfileById(iu::ContentProfileId::kAsia) != nullptr, "Asia profile not found by id");
       Check(iu::FindProfileById(iu::ContentProfileId::kAsia)->display_name == L"Asia (English)", "Asia display name should be Asia (English)");
-      Check(std::string(iu::kProjectVersion) == "v1.0.0-rc1", "Centralized version must be v1.0.0-rc1");
+      Check(std::string(iu::kProjectVersion) == "v1.0.0-rc2", "Centralized version must be v1.0.0-rc2");
 
       // Verify folder and legacy name resolution
       Check(iu::FindProfileByFolder("USA")->folder_name == "USA", "USA folder lookup failed");

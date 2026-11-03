@@ -1,0 +1,20 @@
+diff --git a/src/system/xam/content_manager.cpp b/src/system/xam/content_manager.cpp
+index bd6c797..d3d745d 100644
+--- a/src/system/xam/content_manager.cpp
++++ b/src/system/xam/content_manager.cpp
+@@ -155,9 +155,12 @@ std::vector<XCONTENT_AGGREGATE_DATA> ContentManager::ListContent(uint32_t device
+       continue;
+     }
+ 
+-    XCONTENT_AGGREGATE_DATA content_data;
+-    if (XSUCCEEDED(ReadContentHeaderFile(rex::path_to_utf8(file_info.name), xuid, title_id,
+-                                         content_type, content_data))) {
++    XCONTENT_AGGREGATE_DATA content_data{};
++    // ReadContentHeaderFile returns Win32 errors, not NTSTATUS/HRESULT.
++    // XSUCCEEDED treats small positive errors (including FILE_NOT_FOUND) as
++    // success, leaving headerless imported saves with uninitialized metadata.
++    if (ReadContentHeaderFile(rex::path_to_utf8(file_info.name), xuid, title_id,
++                              content_type, content_data) == X_ERROR_SUCCESS) {
+       result.emplace_back(std::move(content_data));
+     } else {
+       content_data.device_id = device_id;

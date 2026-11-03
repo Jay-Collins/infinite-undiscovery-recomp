@@ -13,7 +13,7 @@ You must supply your own legally obtained game media. Game executables, disc dat
 
 ## Downloads and setup
 
-The original project's [v1.0.0-rc1 portable release](https://github.com/doc-haz/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc1) is an **upstream build**. It does not include this fork's orb fix; that change is available in this repository's source.
+Download the [v1.0.0-rc2 Windows x64 release](https://github.com/Jay-Collins/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc2) for this fork's orb fix. The playable ZIP contains no game files, saves, diagnostic tools or recovery menu. The separate LGPL source/relink archive is for developers and is not needed to play.
 
 Requirements for the Windows build:
 
@@ -40,20 +40,18 @@ Each content profile stores its assets, saves, shaders, cache, logs and configur
 
 ## Utility controls
 
-These are the default registered bindings; they can be changed in the runtime configuration.
+The public release keeps these default shortcuts:
 
 | Key | Action |
 | --- | --- |
-| F5 | Open or close the Game Menu |
-| F6 | Save Anywhere |
-| F8 | Safe Step Forward |
-| F9 | Undo Debug Move |
+| F4 | Runtime settings |
+| F7 | Achievements |
 | F10 | Return to the Content Profile Manager |
-| F12 | Quit the game |
+| F12 | Quit the game (with confirmation) |
 
-The Game Menu also provides buttons for these actions and session diagnostics. If the Save Anywhere shortcut does not respond, use its menu button, which worked during our in-game testing. The menu and recovery actions require `community_debug` to be enabled (the default).
+The release omits the diagnostic/recovery menu, Save Anywhere, Safe Step and trace recorders. The SDK debug-overlay and console shortcuts are unregistered. Normal runtime error logging remains available.
 
-Save Anywhere and the movement tools are recovery/debug features. They can be unavailable during native dialogs or other guarded game states.
+Developers can enable the extra tools with `IU_ENABLE_DIAGNOSTICS=ON`; `build-local.ps1` does this for local investigation builds. They are disabled by default and in `release/make-release.ps1`.
 
 ## Compatibility
 
@@ -65,13 +63,9 @@ DLC installation is implemented, but complete in-game verification of both vouch
 
 A developer build needs a supported game executable, the ReXGlue SDK, CMake 3.25 or newer, Ninja, Clang with C++23 support, and the MSVC / Windows SDK environment.
 
-The manifest targets **ReXGlue v0.10.0**. The runtime DLL verification script identifies SDK source revision `f5337cdc947ff6d4c4196737e2c807a48f2a1fc2` and checks exact DLL hashes; an independently built SDK may require corresponding build configuration changes.
+The SDK is pinned to **ReXGlue v0.10.0**, revision `f5337cdc947ff6d4c4196737e2c807a48f2a1fc2`, with the checked-in content-header patch for imported save enumeration. SDK DLL hashes are recorded and checked during the build and packaging process.
 
-1. Prepare the SDK and your supported executable at `assets/default.xex`.
-2. Generate the game code and SDK CMake integration with ReXGlue. The checked-in [codegen helper](run-codegen.ps1) expects the CLI at `tools/rexglue/rexglue.exe`.
-3. Configure and build with CMake using the Windows x64 presets in [CMakePresets.json](CMakePresets.json).
-
-The SDK, generated game code and proprietary game data are excluded from this repository. This is a developer workflow, not a self-contained one-command build.
+See [Windows build instructions](docs/LOCAL-BUILD.md) for toolchain setup, SDK compilation, code generation and release packaging. The SDK, generated game code and proprietary game data are excluded from this repository.
 
 [Project History](PROJECT_HISTORY.md) preserves the upstream development timeline.
 

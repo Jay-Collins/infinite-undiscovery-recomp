@@ -1,7 +1,11 @@
 #pragma once
 
 #include <cmath>
+#include "build_config.h"
+#include "guest_memory.h"
+#if IU_ENABLE_DIAGNOSTICS
 #include "vesplume_diag.h"
+#endif
 
 namespace iu::orb_visibility {
 // The sight point of Vesplume's patience pedestal is on its own collision
@@ -26,23 +30,23 @@ class EndpointGuard {
     // rewrite arbitrary caller data, shared geometry, or a different query.
     if (uint32_t(ctx.lr) != 0x8258F8B4 || ctx.r6.u32 != 0x100 ||
         uint64_t(ctx.r1.u32)+80 != ctx.r5.u32 ||
-        !iu::trace::readable(base, ctx.r9.u32, 3016) ||
-        !iu::trace::readable(base, ctx.r4.u32, 12) ||
-        !iu::trace::readable(base, ctx.r5.u32, 12)) return;
+        !iu::guest_memory::readable(base, ctx.r9.u32, 3016) ||
+        !iu::guest_memory::readable(base, ctx.r4.u32, 12) ||
+        !iu::guest_memory::readable(base, ctx.r5.u32, 12)) return;
     const uint32_t object = ctx.r9.u32;
-    if (vesp::read32(base, object) != 0x8204EF34 ||
-        vesp::read32(base, object+632) != 10749 ||
-        vesp::read32(base, object+2804) != 38983) return;
+    if (iu::guest_memory::read32(base, object) != 0x8204EF34 ||
+        iu::guest_memory::read32(base, object+632) != 10749 ||
+        iu::guest_memory::read32(base, object+2804) != 38983) return;
     float from[3], to[3], shortened[3];
     for (unsigned i = 0; i < 3; ++i) {
-      uint32_t bits = vesp::read32(base, ctx.r4.u32+i*4);
+      uint32_t bits = iu::guest_memory::read32(base, ctx.r4.u32+i*4);
       std::memcpy(&from[i], &bits, 4);
-      bits = vesp::read32(base, ctx.r5.u32+i*4);
+      bits = iu::guest_memory::read32(base, ctx.r5.u32+i*4);
       std::memcpy(&to[i], &bits, 4);
     }
     if (to[0] != -7800 || to[1] != 4100 || to[2] != 7200 ||
         !shorten_endpoint(from, to, shortened)) return;
-    endpoint_ = iu::trace::host_ptr(base_, ctx.r5.u32);
+    endpoint_ = iu::guest_memory::host_ptr(base_, ctx.r5.u32);
     std::memcpy(saved_, endpoint_, sizeof(saved_));
     for (unsigned i = 0; i < 3; ++i) {
       uint32_t bits;
@@ -69,11 +73,13 @@ extern "C" void __imp__sub_82520478(PPCContext&, uint8_t*);
 extern "C" void sub_82520478(PPCContext& ctx, uint8_t* base) {
   EndpointGuard endpoint(ctx, base);
   __imp__sub_82520478(ctx, base);
+#if IU_ENABLE_DIAGNOSTICS
   if (endpoint.applied() && iu::trace::enabled(iu::trace::kVesplume)) {
     static std::atomic<uint64_t> calls{0};
     const auto n = calls.fetch_add(1)+1;
     if (n <= 16 || n%256 == 0)
       vesp::emit("ORB_SIGHT_ENDPOINT_EXCLUDED CALL=%llu HIT=%u", n, ctx.r3.u32);
   }
+#endif
 }
 } // namespace iu::orb_visibility

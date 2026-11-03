@@ -10,24 +10,33 @@
 #include <dxgi1_6.h>
 #include <wrl/client.h>
 #endif
+#include "build_config.h"
+#if IU_ENABLE_DIAGNOSTICS
 #include "vblank_diag.h"
 #include "pso_diag.h"
+#endif
 #include "asset_setup.h"
 #include "asset_dlc.h"
 #include "portable_setup.h"
 #include "version.h"
 #include <rex/ui/keybinds.h>
+#if IU_ENABLE_DIAGNOSTICS
 #include "community_debug_dialog.h"
+#endif
 #include "disc_swap.h"
+#if IU_ENABLE_DIAGNOSTICS
 #include "disc2_io_trace.h"
 #include "disc2_package_trace.h"
+#endif
 
 REXCVAR_DECLARE(bool, asset_setup);
 REXCVAR_DECLARE(bool, profile_manager);
+#if IU_ENABLE_DIAGNOSTICS
 REXCVAR_DECLARE(bool, community_debug);
 REXCVAR_DECLARE(bool, pso_prewarm);
 REXCVAR_DECLARE(bool, pso_telemetry);
 
+#endif
 class InfiniteUndiscoveryApp : public rex::ReXApp {
  public:
   using rex::ReXApp::ReXApp;
@@ -38,6 +47,7 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
         PPCImageConfig));
   }
 
+#if IU_ENABLE_DIAGNOSTICS
   iu::ui::CommunityDebugActions community_debug_actions_;
   std::unique_ptr<iu::ui::CommunityDebugDialog> community_debug_overlay_;
 
@@ -61,6 +71,7 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
     }
   }
 
+#endif
   void OnPostInitLogging() override {
 #if REX_HAS_D3D12
     // Preserve adapter choices from CLI, environment and configuration.
@@ -106,33 +117,55 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   // Override virtual hooks for customization:
   void OnPreSetup(rex::RuntimeConfig& config) override {
     config.gpu_plugin = "xenos";
+#if IU_ENABLE_DIAGNOSTICS
     vb::log("PRE_SETUP gpu_plugin=xenos synthetic_ticker=absent");
     pso_diag::pre_setup();
+#endif
   }
   // void OnLoadXexImage(std::string& xex_image) override {}
   // void OnPostLoadXexImage() override {}
   void OnPostSetup() override {
+#if IU_ENABLE_DIAGNOSTICS
     vb::host_runtime(runtime(), "POST_SETUP");
     pso_diag::install(runtime());
 
+#endif
     const std::string profile_name = portable_root_.filename().string();
     const auto layout = iu::portable::Layout(rex::filesystem::GetExecutableFolder(), profile_name);
     REXLOG_INFO("CONTENT_PROFILE={}", profile_name);
+    REXLOG_INFO("SAVE_ROOT={}", runtime()->user_data_root().string());
+#if IU_ENABLE_DIAGNOSTICS
+    if (iu::trace::enabled(iu::trace::kVesplume)) {
+      auto* kernel = runtime()->kernel_state();
+      const auto xuid = kernel->user_profile()->xuid();
+      const auto saves = kernel->content_manager()->ListContent(
+          1, xuid, rex::system::XContentType::kSavedGame);
+      REXLOG_INFO("ORB_SAVE_CHECK xuid={:016X} title={:08X} count={}",
+                  xuid, kernel->title_id(), saves.size());
+      for (const auto& save : saves) {
+        REXLOG_INFO("ORB_SAVE_CHECK package={}", save.file_name());
+      }
+    }
+#endif
     REXLOG_INFO("DISC1_ROOT={}", (layout.assets / "disc1").string());
     REXLOG_INFO("DISC2_ROOT={}", (layout.assets / "disc2").string());
     REXLOG_INFO("DLC_ROOT={}", (layout.assets / "dlc").string());
     REXLOG_INFO("CACHE_ROOT={}", layout.shaders.string());
+#if IU_ENABLE_DIAGNOSTICS
     iu::trace::emit(iu::trace::kGeneral, "CONTENT_PROFILE=%s", profile_name.c_str());
     iu::trace::emit(iu::trace::kGeneral, "DISC1_ROOT=%s", (layout.assets / "disc1").string().c_str());
     iu::trace::emit(iu::trace::kGeneral, "DISC2_ROOT=%s", (layout.assets / "disc2").string().c_str());
     iu::trace::emit(iu::trace::kGeneral, "DLC_ROOT=%s", (layout.assets / "dlc").string().c_str());
     iu::trace::emit(iu::trace::kGeneral, "CACHE_ROOT=%s", layout.shaders.string().c_str());
 
+#endif
     // Base ConstructRuntime calls OnPostSetup before LaunchModule. Preserve
     // Disc 1 and prepare the optional permanent Disc 2 device before the guest.
     if (!iu::disc_swap::Install(runtime(), portable_root_))
       throw std::runtime_error("IU permanent disc mounts could not be prepared");
+#if IU_ENABLE_DIAGNOSTICS
     iu::disc2_io::Install(runtime());
+#endif
   }
 
   bool pending_relaunch_profile_manager_{false};
@@ -194,6 +227,11 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   }
 
   void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {
+#if !IU_ENABLE_DIAGNOSTICS
+    rex::ui::UnregisterBind("bind_debug_overlay");
+    rex::ui::UnregisterBind("bind_console");
+#endif
+#if IU_ENABLE_DIAGNOSTICS
     pso_diag::install_presenter(runtime());
     community_debug_actions_.on_relaunch_profile_manager = [this] {
       PromptReturnToProfileManager();
@@ -219,6 +257,7 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
                           [this] {
                             if (REXCVAR_GET(community_debug)) community_debug_actions_.Undo();
                           });
+#endif
     rex::ui::RegisterBind("bind_iu_profile_manager", "F10", "Return to Profile Manager",
                           [this] { PromptReturnToProfileManager(); });
     rex::ui::RegisterBind("bind_iu_quit_game", "F12", "Quit Game",
@@ -228,15 +267,19 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   // std::unique_ptr<rex::ui::AchievementNotificationDialog>
   // CreateAchievementNotificationDialog() override;
   void OnShutdown() override {
+#if IU_ENABLE_DIAGNOSTICS
     iu::disc2_io::Shutdown();
     rex::ui::UnregisterBind("bind_iu_community_debug");
     rex::ui::UnregisterBind("bind_iu_save_anywhere");
     rex::ui::UnregisterBind("bind_iu_safe_step");
     rex::ui::UnregisterBind("bind_iu_undo_move");
+#endif
     rex::ui::UnregisterBind("bind_iu_profile_manager");
     rex::ui::UnregisterBind("bind_iu_quit_game");
+#if IU_ENABLE_DIAGNOSTICS
     community_debug_overlay_.reset();
     pso_diag::shutdown();
+#endif
   }
   std::filesystem::path portable_root_;
   bool SetupEnvironment() override {
@@ -264,12 +307,14 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
       rex::cvar::SetFlagByName("game_data_root",(layout.assets/"disc1").string());
       rex::cvar::SetFlagByName("cache_root",layout.shaders.string());
       rex::cvar::SetFlagByName("log_file",(layout.logs/"runtime.log").string());
+#if IU_ENABLE_DIAGNOSTICS
       // Existing diagnostics remain unchanged; optional output is local too.
       if(std::getenv("IU_DIAG_TRACE_PATH")) _putenv_s("IU_DIAG_TRACE_PATH",(layout.logs/"diagnostic.log").string().c_str());
       if(std::getenv("IU_PERF_TRACE_PATH")) _putenv_s("IU_PERF_TRACE_PATH",(layout.logs/"performance.log").string().c_str());
       if(std::getenv("IU_VESPLUME_TRACE_PATH")) _putenv_s("IU_VESPLUME_TRACE_PATH",(layout.logs/"vesplume_trace.log").string().c_str());
       _putenv_s("IU_TRACE_DIR",layout.logs.string().c_str());
 
+#endif
       const auto disc1_root = layout.assets / "disc1";
       const auto disc2_root = layout.assets / "disc2";
       const auto dlc_root = layout.assets / "dlc";
@@ -287,10 +332,12 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
       REXLOG_INFO("DISC2_ROOT={}", disc2_root.string());
       REXLOG_INFO("DLC_ROOT={}", dlc_root.string());
       REXLOG_INFO("CACHE_ROOT={}", cache_root.string());
+#if IU_ENABLE_DIAGNOSTICS
       vb::log("CONTENT_PROFILE=%s DISC1_ROOT=%s DISC2_ROOT=%s DLC_ROOT=%s CACHE_ROOT=%s",
               profile_name.c_str(), disc1_root.string().c_str(), disc2_root.string().c_str(),
               dlc_root.string().c_str(), cache_root.string().c_str());
 
+#endif
       return rex::ReXApp::SetupEnvironment();
     } catch(const std::exception& e) {iu::portable::Error(e.what());return false;}
   }
@@ -327,7 +374,9 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   }
 
   void OnPostLaunchModule(rex::system::XThread* thread) override {
+#if IU_ENABLE_DIAGNOSTICS
     pso_diag::prewarm_wait();
+#endif
     rex::ReXApp::OnPostLaunchModule(thread);
   }
 };
