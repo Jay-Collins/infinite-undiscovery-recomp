@@ -39,6 +39,11 @@ or Back + Start. Background music continues. The footer indicates when paused.
 When a changed setting needs a restart, Save settings and restart appears.
 It restarts the same content profile after confirmation. This does not save
 game progress: save in the game first and wait for saving to finish.
+Restart, backup restore, profile switching and normal quit are unavailable
+while save data is in use, including automatic backup completion. This also
+covers F10/F12, Alt+F4 and the window close button. Retry after saving ends;
+blocked exit requests are not queued. F4 lets active save/load work finish
+before pausing. The menu displays the reason while actions are unavailable.
 Aspect ratio preserves the original picture or stretches it to the display.
 Display resolution presets apply in windowed mode; borderless fullscreen
 uses the desktop resolution. Internal resolution provides uniform 1-8x

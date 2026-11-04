@@ -2,6 +2,7 @@
 #include "controller_driver.h"
 #include "frame_counter.h"
 #include "menu_pause.h"
+#include "save_activity.h"
 #include <chrono>
 #include <rex/ui/imgui_dialog.h>
 #include <imgui.h>
@@ -16,6 +17,7 @@ class PlayerOverlay final : public rex::ui::ImGuiDialog {
         menu_open_(std::move(menu_open)), toggle_(std::move(toggle)) {}
  private:
   void OnDraw(ImGuiIO& io) override {
+    iu::saves::activity.Refresh();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad;
     io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
     const auto raw = controller_ && window_->HasFocus() ? controller_->PollRaw() : rex::input::X_INPUT_GAMEPAD{};

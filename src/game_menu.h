@@ -6,6 +6,7 @@
 #include "display_window.h"
 #include "player_options.h"
 #include "save_backups.h"
+#include "save_activity.h"
 #include "version.h"
 #include <rex/ui/imgui_dialog.h>
 #include <rex/ui/immediate_drawer.h>
@@ -59,7 +60,7 @@ class GameMenu final : public rex::ui::ImGuiDialog {
       ImGui::Text("%s  |  %s",backup.created.c_str(),backup.slot.c_str());
       ImGui::TextDisabled("Account %s  |  %.0f KB",backup.account.c_str(),double(backup.bytes)/1024);
       if(!backup.can_restore)ImGui::TextDisabled("Incomplete recovery copy; kept for inspection, cannot restore.");
-      ImGui::BeginDisabled(!backup.can_restore);
+      ImGui::BeginDisabled(!backup.can_restore || iu::saves::activity.Busy());
       if(ImGui::Button("Restore this backup...")) {
         restore_selection_=backup;request_restore_confirmation_=true;
       }
@@ -388,7 +389,7 @@ class GameMenu final : public rex::ui::ImGuiDialog {
       ImGui::TextDisabled("%s  /  %s", profile_.c_str(), iu::kProjectVersion);
       ImGui::Spacing();
       const float footer_height = ImGui::GetFrameHeightWithSpacing() * 2 +
-                                  ImGui::GetTextLineHeightWithSpacing() * 2 + 24;
+                                  ImGui::GetTextLineHeightWithSpacing() * (iu::saves::activity.Busy()?3:2) + 24;
       const float body_height = std::max(60.0f, ImGui::GetContentRegionAvail().y - footer_height);
       if (ImGui::BeginTabBar("##sections", ImGuiTabBarFlags_FittingPolicyResizeDown)) {
         const char* tabs[] = {"Settings", "Controls", "Achievements", "Game"};
@@ -440,19 +441,26 @@ class GameMenu final : public rex::ui::ImGuiDialog {
               ImGui::Spacing();
               ImGui::SeparatorText("Content & profiles");
               ImGui::TextWrapped("Manage installed discs, DLC, language and content profiles in the Profile Manager. Returning there ends the current game session; save your game first.");
+              ImGui::BeginDisabled(iu::saves::activity.Busy());
               if (ImGui::Button("Open Profile Manager...")) { confirm_profiles_=true; ImGui::OpenPopup("End game session?"); }
+              ImGui::EndDisabled();
               ImGui::Spacing();
               ImGui::SeparatorText("Exit");
               ImGui::TextWrapped("Quit to desktop. Unsaved game progress will be lost.");
+              ImGui::BeginDisabled(iu::saves::activity.Busy());
               if (ImGui::Button("Quit game...")) { confirm_profiles_=false; ImGui::OpenPopup("End game session?"); }
+              ImGui::EndDisabled();
               if(ImGui::BeginPopupModal("End game session?",nullptr,ImGuiWindowFlags_AlwaysAutoResize)) {
                 ImGui::TextUnformatted("Unsaved game progress will be lost.");
+                if(iu::saves::activity.Busy())ImGui::TextUnformatted(iu::saves::kBusyMessage);
                 if(ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
                 ImGui::SetItemDefaultFocus(); ImGui::SameLine();
+                ImGui::BeginDisabled(iu::saves::activity.Busy());
                 if(ImGui::Button(confirm_profiles_?"Return to Profile Manager":"Quit to desktop")) {
                   if(confirm_profiles_) profiles_(); else quit_();
                   ImGui::CloseCurrentPopup();
                 }
+                ImGui::EndDisabled();
                 ImGui::EndPopup();
               }
             }
@@ -463,7 +471,11 @@ class GameMenu final : public rex::ui::ImGuiDialog {
         ImGui::EndTabBar();
       }
       ImGui::Separator();
-      if (!display_.Error().empty()) {
+      if(iu::saves::activity.Busy()) {
+        ImGui::TextColored(kAccent,"%s",iu::saves::kBusyMessage);
+        ImGui::TextDisabled("The game continues while save data is in use; menu pause resumes afterward.");
+      }
+      else if (!display_.Error().empty()) {
         ImGui::TextColored(ImVec4(1,0.65f,0.5f,1),"Display change failed. Hover for details.");
         if(ImGui::IsItemHovered()) ImGui::SetTooltip("%s",display_.Error().c_str());
       }
@@ -477,7 +489,9 @@ class GameMenu final : public rex::ui::ImGuiDialog {
       if (save_failed_ && !save_error_.empty() && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", save_error_.c_str());
       ImGui::SameLine();
       if(settings_.NeedsRestart()) {
+        ImGui::BeginDisabled(iu::saves::activity.Busy());
         if(ImGui::Button("Save settings and restart...")) { restore_selection_={};ImGui::OpenPopup("Restart game?"); }
+        ImGui::EndDisabled();
         ImGui::SameLine();
       }
       if (active_tab_ <= 1) {
@@ -495,9 +509,11 @@ class GameMenu final : public rex::ui::ImGuiDialog {
         }
         ImGui::TextUnformatted("Settings will be saved, then the game will restart in this profile.");
         ImGui::TextUnformatted("This does NOT save game progress. Unsaved progress will be lost.");
-        ImGui::TextUnformatted("Save in the game first. Do not restart while the game is saving.");
+        ImGui::TextUnformatted("Save in the game first. Restart is unavailable while save data is in use.");
+        if(iu::saves::activity.Busy())ImGui::TextUnformatted(iu::saves::kBusyMessage);
         if(ImGui::Button("Cancel"))ImGui::CloseCurrentPopup();
         ImGui::SetItemDefaultFocus();ImGui::SameLine();
+        ImGui::BeginDisabled(iu::saves::activity.Busy());
         if(ImGui::Button(restore?"Restore and restart":"Save settings and restart")) {
           if(SaveSettings()) {
             std::string error;
@@ -506,6 +522,7 @@ class GameMenu final : public rex::ui::ImGuiDialog {
           }
           ImGui::CloseCurrentPopup();
         }
+        ImGui::EndDisabled();
         ImGui::EndPopup();
       }
       if (ImGui::BeginPopupModal("Reset settings?", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {

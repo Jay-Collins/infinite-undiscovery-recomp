@@ -22,6 +22,7 @@
 #include "game_menu.h"
 #include "player_overlay.h"
 #include "save_backups.h"
+#include "save_activity.h"
 #include "session_restart.h"
 #include "menu_pause.h"
 #include "content_profile.h"
@@ -274,7 +275,8 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
     const auto profile=portable_root_.filename().wstring();
     std::vector<std::wstring> args{L"--restart_profile="+profile};
     if(!backup.empty())args.push_back(L"--restore_backup="+std::wstring(backup.begin(),backup.end()));
-    if(!iu::session::Launch(path,args,error))return false;
+    if(!iu::saves::activity.TryReserveExit()) {error=iu::saves::kBusyMessage;return false;}
+    if(!iu::session::Launch(path,args,error)) {iu::saves::activity.CancelExit();return false;}
     pending_relaunch_profile_manager_=false;
     app_context().CallInUIThreadDeferred([this] {
       if(window())window()->RequestClose();else app_context().RequestDeferredQuit();
@@ -283,11 +285,14 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   }
 
   void PromptReturnToProfileManager(bool confirmed=false) {
+    iu::saves::activity.Refresh();
+    if(iu::saves::activity.Busy()) {OpenGameMenu(iu::ui::MenuTab::Game);return;}
     int choice = confirmed ? IDYES : iu::portable::Dialog(
         iu::portable::Text(L"Gestor de perfiles de contenido"),
         iu::portable::Text(L"¿Volver al Gestor de Perfiles? Se cerrara la sesion de juego actual."),
         {{IDYES, iu::portable::Text(L"Si")}, {IDNO, iu::portable::Text(L"No")}});
     if (choice == IDYES) {
+      if(!iu::saves::activity.TryReserveExit()) {OpenGameMenu(iu::ui::MenuTab::Game);return;}
       pending_relaunch_profile_manager_ = true;
       if (window()) {
         window()->RequestClose();
@@ -298,11 +303,14 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   }
 
   void PromptQuitGame(bool confirmed=false) {
+    iu::saves::activity.Refresh();
+    if(iu::saves::activity.Busy()) {OpenGameMenu(iu::ui::MenuTab::Game);return;}
     int choice = confirmed ? IDYES : iu::portable::Dialog(
         L"Infinite Undiscovery",
         iu::portable::Text(L"¿Salir de Infinite Undiscovery?"),
         {{IDYES, iu::portable::Text(L"Si")}, {IDNO, iu::portable::Text(L"No")}});
     if (choice == IDYES) {
+      if(!iu::saves::activity.TryReserveExit()) {OpenGameMenu(iu::ui::MenuTab::Game);return;}
       pending_relaunch_profile_manager_ = false;
       if (window()) {
         window()->RequestClose();
@@ -310,6 +318,15 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
         app_context().RequestDeferredQuit();
       }
     }
+  }
+
+  bool OnWindowCloseRequested() override {
+    // The SDK calls this veto point for the title-bar X, Alt+F4 and SDL quit.
+    // Programmatic RequestClose bypasses it, so every app exit path above
+    // reserves first too. Do not queue an unexpected exit after saving ends.
+    if(iu::saves::activity.ExitReserved() || iu::saves::activity.TryReserveExit())return true;
+    OpenGameMenu(iu::ui::MenuTab::Game);
+    return false;
   }
 
   void OnClosing(rex::ui::UIEvent& e) override {

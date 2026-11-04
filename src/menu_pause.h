@@ -19,13 +19,20 @@ class MenuPause {
 
   void FrameBoundary() {
     std::unique_lock lock(mutex_);
-    if (!requested_ || shutdown_) return;
+    if (!requested_ || shutdown_ || save_busy_) return;
     paused_.store(true, std::memory_order_release);
-    wake_.wait(lock, [this] { return !requested_ || shutdown_; });
+    wake_.wait(lock, [this] { return !requested_ || shutdown_ || save_busy_; });
     paused_.store(false, std::memory_order_release);
   }
 
   bool IsPaused() const { return paused_.load(std::memory_order_acquire); }
+
+  // Saves may span multiple frames. Keep the request, but let the game finish
+  // its save/close state machine before parking at a later frame boundary.
+  void SetSaveBusy(bool busy) {
+    { std::lock_guard lock(mutex_); save_busy_ = busy; }
+    wake_.notify_all();
+  }
 
   // Release the guest before title termination. Later frame calls cannot park.
   void Shutdown() {
@@ -42,6 +49,7 @@ class MenuPause {
   std::condition_variable wake_;
   bool requested_ = false;
   bool shutdown_ = false;
+  bool save_busy_ = false;
   std::atomic<bool> paused_{false};
 };
 

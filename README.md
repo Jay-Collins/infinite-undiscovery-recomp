@@ -57,6 +57,8 @@ The top tabs are **Settings**, **Controls**, **Achievements** and **Game**. Sett
 
 When starred settings differ from the running session, **Save settings and restart...** appears. Confirming saves the settings and relaunches the same executable and content profile. It does **not** save game progress: save in the game first and wait for saving to finish. A settings-write or launch failure keeps the current session running.
 
+Newer source builds also block restart, backup restore, profile switching and normal quit while save data is in use, including queued save opens and automatic backup completion. This covers F10/F12, Alt+F4 and the window close button. The menu explains when actions are unavailable; retry after the operation finishes. F4 temporarily defers pausing so a save or load can finish. This protection is not included in the published rc3 download yet.
+
 Display settings separate **Aspect ratio**, **Display resolution** and **Internal resolution**. Aspect ratio preserves the original picture or stretches it to the display; it does not add an ultrawide field of view. Borderless fullscreen uses the desktop resolution, while windowed mode offers size presets. Internal resolution offers uniform 1–8× native scaling, independent of window size.
 
 Graphics offers **30 FPS (original)** and **60 FPS (experimental)**. Save settings and restart to apply the frame-rate target. Keep VSync enabled. The 60 FPS option uses the game's existing elapsed-time scheduler; first-use shader/asset loading hitches may remain, and videos retain their own playback rate. Full-game compatibility at 60 FPS is not yet verified.
