@@ -1,4 +1,4 @@
-Infinite Undiscovery Recomp v1.0.0-rc2 (Jay-Collins fork)
+Infinite Undiscovery Recomp v1.0.0-rc3 (Jay-Collins fork)
 ======================================================
 
 Download and source:
@@ -33,7 +33,12 @@ F10: return to the Content Profile Manager. F12: quit (with confirmation).
 The menu has Settings, Controls, Achievements and Game tabs. The Game tab
 also provides profile-manager and quit actions. Save settings keeps changes
 for the active profile; starred settings require a restart. Gameplay input
-is blocked while the overlay is open, but the game continues running.
+is blocked while the overlay is open. Gameplay pauses at the next frame
+boundary and resumes when the menu closes, including when opened with F7
+or Back + Start. Background music continues. The footer indicates when paused.
+When a changed setting needs a restart, Save settings and restart appears.
+It restarts the same content profile after confirmation. This does not save
+game progress: save in the game first and wait for saving to finish.
 Aspect ratio preserves the original picture or stretches it to the display.
 Display resolution presets apply in windowed mode; borderless fullscreen
 uses the desktop resolution. Internal resolution provides uniform 1-8x
@@ -50,6 +55,16 @@ unregistered. Normal runtime error logging remains available.
 Saves created during play stay inside the selected profile, for example
 USA/saves/. Back up your existing installation before migrating it; this ZIP
 contains no profile configuration, saves, game assets, shader cache or logs.
+
+Save backups are stored in <profile>/backups/saves/. Existing save slots are
+backed up at launch; changed saves are copied when their save container closes.
+The latest 10 distinct versions are kept per slot. F4 > Game > Save backups
+shows local timestamps and offers Restore and restart. Restore keeps a recovery
+copy of the current slot first (which may temporarily exceed retention), waits
+for the old game process to exit, and replaces only the selected slot. An
+interrupted restore is rolled back on the next launch. These backups contain
+saved progress only; they are not autosaves or save states. One game session
+can use a content profile at a time.
 
 Licenses
 --------

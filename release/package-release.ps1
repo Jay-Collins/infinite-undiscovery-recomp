@@ -1,12 +1,17 @@
 # Package a previously built Windows Release target using a strict file allowlist.
 param(
     [Parameter(Mandatory)][string]$BuildDir,
-    [string]$Version = 'v1.0.0-rc2',
+    [string]$Version = '',
     [string]$OutputRoot = '',
     [string]$SdkProvenance = ''
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
+$versionHeader = Get-Content -LiteralPath (Join-Path $repo 'src/version.h') -Raw
+if ($versionHeader -notmatch 'kProjectVersion\s*=\s*"([^"]+)"') { throw 'Missing application version' }
+$sourceVersion = $Matches[1]
+if (-not $Version) { $Version = $sourceVersion }
+if ($Version -ne $sourceVersion) { throw 'Package version must match src/version.h' }
 if ($Version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-rc[0-9]+)?$') { throw 'Invalid release version' }
 $BuildDir = (Resolve-Path -LiteralPath $BuildDir).Path
 if (-not $OutputRoot) { $OutputRoot = Join-Path $repo 'out/releases' }
@@ -14,11 +19,13 @@ $OutputRoot = [IO.Path]::GetFullPath($OutputRoot)
 if (-not $SdkProvenance) { $SdkProvenance = Join-Path $repo 'tools/rexglue-install/local-build.json' }
 $cache = Get-Content -LiteralPath (Join-Path $BuildDir 'CMakeCache.txt') -Raw
 if ($cache -notmatch '(?m)^CMAKE_BUILD_TYPE:STRING=Release\r?$' -or
-    $cache -notmatch '(?m)^IU_ENABLE_DIAGNOSTICS:BOOL=OFF\r?$') { throw 'A Release build with IU_ENABLE_DIAGNOSTICS=OFF is required' }
+    $cache -notmatch '(?m)^IU_ENABLE_DIAGNOSTICS:BOOL=OFF\r?$' -or
+    $cache -notmatch '(?m)^IU_ENABLE_TIMING_EXPERIMENT:BOOL=OFF\r?$') { throw 'A Release build with diagnostics and timing experiments disabled is required' }
 & cmake "-DVERIFY_DIR=$BuildDir" '-DREQUIRE_ALL=ON' "-DEXPECTED_HASH_FILE=$SdkProvenance" -P (Join-Path $repo 'cmake/verify_rexglue_dlls.cmake')
 if ($LASTEXITCODE -ne 0) { throw 'SDK hash verification failed' }
 $exe = Join-Path $BuildDir 'InfiniteUndiscoveryRecomp.exe'
 $binaryText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($exe))
+if (-not $binaryText.Contains($Version)) { throw 'Executable does not contain the requested version' }
 foreach ($marker in 'IU_ORB_MOVE_TRACE','IU_VESPLUME_TRACE_PATH','SAVE_ANYWHERE_REQUEST','bind_iu_community_debug','bind_iu_save_anywhere','bind_iu_safe_step','IU-PERF','IU_DIAG_TRACE_PATH') {
     if ($binaryText.Contains($marker)) { throw "Diagnostic code found in release executable: $marker" }
 }

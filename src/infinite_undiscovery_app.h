@@ -21,6 +21,10 @@
 #include "version.h"
 #include "game_menu.h"
 #include "player_overlay.h"
+#include "save_backups.h"
+#include "session_restart.h"
+#include "menu_pause.h"
+#include "content_profile.h"
 #include <rex/input/sdl/sdl_input_driver.h>
 #include <rex/input/xinput/xinput_input_driver.h>
 #include <rex/input/mnk/mnk_input_driver.h>
@@ -70,12 +74,15 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   iu::player::ControllerDriver* controller_driver_=nullptr;
   iu::ui::DisplayWindow display_window_;
   std::unique_ptr<iu::ui::PlayerOverlay> player_overlay_;
+  std::shared_ptr<iu::saves::Backups> save_backups_;
+  iu::session::ProfileLock profile_lock_;
 
   void CloseGameMenu() {
     if(controller_driver_) controller_driver_->SuppressUntilReleased();
 
     game_menu_.reset();
     game_menu_open_.store(false, std::memory_order_relaxed);
+    iu::player::menu_pause.Request(false);
   }
 
   void OpenGameMenu(iu::ui::MenuTab tab = iu::ui::MenuTab::Settings) {
@@ -86,10 +93,12 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
           [this] { app_context().CallInUIThreadDeferred([this] { CloseGameMenu(); }); },
           [this] { app_context().CallInUIThreadDeferred([this] { PromptReturnToProfileManager(true); }); },
           [this] { app_context().CallInUIThreadDeferred([this] { PromptQuitGame(true); }); },
+          save_backups_, [this](const std::string& backup,std::string& error) { return RestartSession(backup,error); },
           display_window_, [this](std::function<void()> change) {
             app_context().CallInUIThreadDeferred([this, change=std::move(change)] { display_window_.Apply(change); });
           });
       game_menu_open_.store(true, std::memory_order_relaxed);
+      iu::player::menu_pause.Request(true);
       if(controller_driver_) controller_driver_->StopRumble();
     }
     if (game_menu_) game_menu_->Select(tab);
@@ -257,6 +266,22 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
 
   bool pending_relaunch_profile_manager_{false};
 
+  bool RestartSession(const std::string& backup,std::string& error) {
+    if(!backup.empty() && (!save_backups_ || !save_backups_->Validate(backup,error)))return false;
+    wchar_t path[32768]{};
+    const auto length=GetModuleFileNameW(nullptr,path,32768);
+    if(!length || length>=32768){error="Could not find the current game executable.";return false;}
+    const auto profile=portable_root_.filename().wstring();
+    std::vector<std::wstring> args{L"--restart_profile="+profile};
+    if(!backup.empty())args.push_back(L"--restore_backup="+std::wstring(backup.begin(),backup.end()));
+    if(!iu::session::Launch(path,args,error))return false;
+    pending_relaunch_profile_manager_=false;
+    app_context().CallInUIThreadDeferred([this] {
+      if(window())window()->RequestClose();else app_context().RequestDeferredQuit();
+    });
+    return true;
+  }
+
   void PromptReturnToProfileManager(bool confirmed=false) {
     int choice = confirmed ? IDYES : iu::portable::Dialog(
         iu::portable::Text(L"Gestor de perfiles de contenido"),
@@ -290,6 +315,7 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   void OnClosing(rex::ui::UIEvent& e) override {
     (void)e;
     REXLOG_INFO("[Shutdown] Window closing, terminating title...");
+    iu::player::menu_pause.Shutdown();
     if (runtime() && runtime()->kernel_state()) {
       runtime()->kernel_state()->TerminateTitle();
     }
@@ -363,6 +389,7 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   // std::unique_ptr<rex::ui::AchievementNotificationDialog>
   // CreateAchievementNotificationDialog() override;
   void OnShutdown() override {
+    iu::player::menu_pause.Shutdown();
     rex::ui::UnregisterBind("bind_iu_menu");
     rex::ui::UnregisterBind("bind_iu_achievements");
     CloseGameMenu();
@@ -384,12 +411,30 @@ class InfiniteUndiscoveryApp : public rex::ReXApp {
   std::filesystem::path portable_root_;
   bool SetupEnvironment() override {
     try {
+      std::string restart_error;
+      if(!iu::session::WaitForPreviousProcess(rex::cvar::GetFlagByName("restart_wait_handle"),restart_error))
+        throw std::runtime_error(restart_error);
       const auto exe=rex::filesystem::GetExecutableFolder();
       iu::portable::Initialize(exe);
+      const auto restart_profile=rex::cvar::GetFlagByName("restart_profile");
+      if(!restart_profile.empty()) {
+        if(!iu::FindProfileByFolder(restart_profile))throw std::runtime_error("Invalid restart content profile.");
+        iu::portable::SetActiveProfile(restart_profile);
+      }
       const bool maintenance = REXCVAR_GET(asset_setup) || REXCVAR_GET(profile_manager);
       auto selected=iu::portable::Select(exe, maintenance);
       if(!selected) return false;
       portable_root_=*selected;
+      if(!restart_profile.empty() && portable_root_.filename().string()!=restart_profile)
+        throw std::runtime_error("The selected restart profile is unavailable.");
+      profile_lock_.Acquire(portable_root_);
+      save_backups_=std::make_shared<iu::saves::Backups>(portable_root_);
+      save_backups_->Initialize();
+      const auto restore=rex::cvar::GetFlagByName("restore_backup");
+      if(!restore.empty() && !save_backups_->Restore(restore,restart_error))
+        throw std::runtime_error("Save restore stopped: "+restart_error);
+      save_backups_->CaptureAll();
+      iu::saves::SetActive(save_backups_);
       const std::string profile_name = portable_root_.filename().string();
       if (!maintenance && profile_name == "USA-UNDUB" && !iu::portable::IsUndubSubtitleWarningDismissed()) {
         int choice = iu::portable::Dialog(

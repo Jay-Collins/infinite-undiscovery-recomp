@@ -1,9 +1,11 @@
 #pragma once
+#include "menu_pause.h"
 
 #include "menu_settings.h"
 #include "display_settings.h"
 #include "display_window.h"
 #include "player_options.h"
+#include "save_backups.h"
 #include "version.h"
 #include <rex/ui/imgui_dialog.h>
 #include <rex/ui/immediate_drawer.h>
@@ -25,16 +27,46 @@ class GameMenu final : public rex::ui::ImGuiDialog {
            rex::Runtime* runtime, rex::system::AchievementManager* achievements,
            MenuSettings& settings, std::filesystem::path config, std::string profile,
            std::function<void()> close, std::function<void()> profiles,
-           std::function<void()> quit, DisplayWindow& display,
+           std::function<void()> quit, std::shared_ptr<iu::saves::Backups> backups,
+           std::function<bool(const std::string&,std::string&)> restart, DisplayWindow& display,
            std::function<void(std::function<void()>)> apply_display_change)
       : ImGuiDialog(drawer), achievements_(achievements), icons_(immediate, runtime),
         settings_(settings), config_(std::move(config)), profile_(std::move(profile)),
         close_(std::move(close)), profiles_(std::move(profiles)), quit_(std::move(quit)),
-        display_(display), apply_display_change_(std::move(apply_display_change)) {}
+        display_(display), apply_display_change_(std::move(apply_display_change)),
+        backups_(std::move(backups)), restart_(std::move(restart)) {
+    if(backups_)backup_list_=backups_->List();
+  }
 
   void Select(MenuTab tab) { requested_tab_ = static_cast<int>(tab); }
 
  private:
+  bool SaveSettings() {
+    save_failed_=!settings_.Save(config_,save_error_);
+    message_=save_failed_?"Could not save settings. Hover for details.":"Settings saved for this profile.";
+    return !save_failed_;
+  }
+  void DrawBackups() {
+    ImGui::SeparatorText("Save backups");
+    ImGui::TextWrapped("Automatic backups keep the latest 10 versions per slot. Existing saves are backed up at launch; changed saves are copied when the game closes their save container.");
+    if(!backups_){ImGui::TextDisabled("Backups are unavailable.");return;}
+    ImGui::TextWrapped("%s",backups_->Status().c_str());
+    if(ImGui::Button("Refresh backups"))backup_list_=backups_->List();
+    ImGui::TextDisabled("Times are local. Restore replaces one slot and restarts the game.");
+    if(backup_list_.empty())ImGui::TextDisabled("No backups yet. Save normally in the game to create one.");
+    for(const auto& backup:backup_list_) {
+      ImGui::PushID(backup.id.c_str());
+      ImGui::Text("%s  |  %s",backup.created.c_str(),backup.slot.c_str());
+      ImGui::TextDisabled("Account %s  |  %.0f KB",backup.account.c_str(),double(backup.bytes)/1024);
+      if(!backup.can_restore)ImGui::TextDisabled("Incomplete recovery copy; kept for inspection, cannot restore.");
+      ImGui::BeginDisabled(!backup.can_restore);
+      if(ImGui::Button("Restore this backup...")) {
+        restore_selection_=backup;request_restore_confirmation_=true;
+      }
+      ImGui::EndDisabled();
+      ImGui::PopID();
+    }
+  }
   static constexpr ImVec4 kAccent{0.48f, 0.78f, 0.96f, 1.0f};
 
   static bool ValidBinding(std::string_view value) {
@@ -403,7 +435,8 @@ class GameMenu final : public rex::ui::ImGuiDialog {
             else {
               ImGui::SeparatorText("Current session");
               ImGui::Text("Content profile: %s", profile_.c_str());
-              ImGui::TextWrapped("The overlay does not pause the game. Pause using the game's own menu before changing settings.");
+              ImGui::TextWrapped("Opening this menu pauses gameplay at the next frame boundary. Closing it resumes play. Background music continues.");
+              DrawBackups();
               ImGui::Spacing();
               ImGui::SeparatorText("Content & profiles");
               ImGui::TextWrapped("Manage installed discs, DLC, language and content profiles in the Profile Manager. Returning there ends the current game session; save your game first.");
@@ -436,23 +469,45 @@ class GameMenu final : public rex::ui::ImGuiDialog {
       }
       else if (!message_.empty()) ImGui::TextColored(save_failed_ ? ImVec4(1, 0.65f, 0.5f, 1) : kAccent, "%s", message_.c_str());
       else if (settings_.Unsaved()) ImGui::TextColored(kAccent, "Unsaved settings. Save to keep changes for the next launch.");
-      else ImGui::TextDisabled("F4 closes the menu. Game input is blocked while it is open.");
+      else ImGui::TextDisabled(iu::player::menu_pause.IsPaused() ? "Game paused. F4 closes the menu and resumes play." : "Waiting for the game to reach a pause point. F4 closes the menu.");
       if (settings_.NeedsRestart()) ImGui::TextColored(kAccent, "Restart required for changed display / graphics settings.");
       else ImGui::TextDisabled(" ");
 
-      if (ImGui::Button("Save settings")) {
-        std::string error;
-        save_failed_ = !settings_.Save(config_, error);
-        message_ = save_failed_ ? "Could not save settings. Hover for details." : "Settings saved for this profile.";
-        save_error_ = error;
-      }
+      if (ImGui::Button("Save settings")) SaveSettings();
       if (save_failed_ && !save_error_.empty() && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", save_error_.c_str());
       ImGui::SameLine();
+      if(settings_.NeedsRestart()) {
+        if(ImGui::Button("Save settings and restart...")) { restore_selection_={};ImGui::OpenPopup("Restart game?"); }
+        ImGui::SameLine();
+      }
       if (active_tab_ <= 1) {
         if (ImGui::Button("Reset this tab")) ImGui::OpenPopup("Reset settings?");
         ImGui::SameLine();
       }
       if (ImGui::Button("Return to game")) close_();
+      if(request_restore_confirmation_) {request_restore_confirmation_=false;ImGui::OpenPopup("Restart game?");}
+      if(ImGui::BeginPopupModal("Restart game?",nullptr,ImGuiWindowFlags_AlwaysAutoResize)) {
+        const bool restore=!restore_selection_.id.empty();
+        if(restore) {
+          ImGui::Text("Restore %s",restore_selection_.slot.c_str());
+          ImGui::Text("Backup from %s (local time)",restore_selection_.created.c_str());
+          ImGui::TextUnformatted("This replaces this slot's saved progress. A recovery backup is kept first.");
+        }
+        ImGui::TextUnformatted("Settings will be saved, then the game will restart in this profile.");
+        ImGui::TextUnformatted("This does NOT save game progress. Unsaved progress will be lost.");
+        ImGui::TextUnformatted("Save in the game first. Do not restart while the game is saving.");
+        if(ImGui::Button("Cancel"))ImGui::CloseCurrentPopup();
+        ImGui::SetItemDefaultFocus();ImGui::SameLine();
+        if(ImGui::Button(restore?"Restore and restart":"Save settings and restart")) {
+          if(SaveSettings()) {
+            std::string error;
+            if(!restart_(restore_selection_.id,error)) {save_failed_=true;save_error_=error;message_="Restart failed. Hover Save settings for details.";}
+            else message_="Restarting game...";
+          }
+          ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+      }
       if (ImGui::BeginPopupModal("Reset settings?", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::TextUnformatted("Restore this tab's defaults for the current session?");
         ImGui::TextDisabled("Use Save settings afterward to keep the defaults.");
@@ -483,5 +538,10 @@ class GameMenu final : public rex::ui::ImGuiDialog {
   std::function<void(std::function<void()>)> apply_display_change_;
   bool confirm_profiles_=false;
   bool first_draw_=true;
+  std::shared_ptr<iu::saves::Backups> backups_;
+  std::function<bool(const std::string&,std::string&)> restart_;
+  std::vector<iu::saves::Backup> backup_list_;
+  iu::saves::Backup restore_selection_;
+  bool request_restore_confirmation_=false;
 };
 }  // namespace iu::ui

@@ -13,7 +13,7 @@ You must supply your own legally obtained game media. Game executables, disc dat
 
 ## Downloads and setup
 
-Download the [v1.0.0-rc2 Windows x64 release](https://github.com/Jay-Collins/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc2) for this fork's orb fix. The playable ZIP contains no game files, saves, diagnostic tools or recovery menu. The separate LGPL source/relink archive is for developers and is not needed to play.
+Download the [v1.0.0-rc3 Windows x64 release](https://github.com/Jay-Collins/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc3) for this fork's orb fix, unified menu, save backups, settings restart action and menu pause. The playable ZIP contains no game files, saves or developer diagnostic tools. The separate LGPL source/relink archive is for developers and is not needed to play.
 
 Requirements for the Windows build:
 
@@ -36,11 +36,15 @@ See [Asset Setup](ASSET_SETUP.md) for the detailed workflow and troubleshooting.
 
 Each content profile stores its assets, saves, shaders, cache, logs and configuration under the application folder. For example, the USA profile's saves are in `USA/saves/`. Profiles do not share saves automatically; moving the complete application folder preserves its portable data.
 
+The game automatically backs up existing save slots at launch and changed slots when the game closes their save container. Backups live in `<profile>/backups/saves/`, include the slot's files and content header, and retain the latest 10 distinct versions per slot. Unchanged saves do not create duplicate versions. These are copies of saved progress, not autosaves or save states.
+
+Use **F4 → Game → Save backups** to choose a timestamped backup and **Restore and restart**. Only that slot is replaced, after the old game process exits. The current slot is copied first; this recovery copy may temporarily exceed normal retention. Interrupted restores roll back at the next launch. Backup integrity is checked, but this does not establish that the game's saved progress is valid. Empty/incomplete recovery copies are retained for inspection and cannot be restored through the menu. Backups stay within their content profile, and only one game session can use a profile at a time.
+
 [IU Save Bridge](https://github.com/doc-haz/iu-save-bridge) is the original project's separate save editor, with Xbox 360 / STFS save import and backup tools. Save compatibility between editions should not be assumed.
 
 ## Utility controls
 
-Current source builds combine player utilities into one tabbed menu:
+Player utilities share one tabbed menu:
 
 | Key | Action |
 | --- | --- |
@@ -49,13 +53,15 @@ Current source builds combine player utilities into one tabbed menu:
 | F10 | Return to the Content Profile Manager |
 | F12 | Quit the game (with confirmation) |
 
-The top tabs are **Settings**, **Controls**, **Achievements** and **Game**. Settings cover display, graphics and audio; Controls configures keyboard/mouse emulation. The Game tab provides profile-manager and quit actions. Use **Save settings** to keep changes for the active content profile; starred settings require a restart. The overlay blocks gameplay input while open, but does not pause the game.
+The top tabs are **Settings**, **Controls**, **Achievements** and **Game**. Settings cover display, graphics and audio; Controls configures keyboard/mouse emulation. The Game tab provides profile-manager and quit actions. Use **Save settings** to keep changes for the active content profile; starred settings require a restart. Opening the menu pauses gameplay at the next frame boundary and blocks game input; closing it resumes play. This also applies when opening it with Back + Start or F7. Background music continues. The footer shows when the game has reached the pause point.
+
+When starred settings differ from the running session, **Save settings and restart...** appears. Confirming saves the settings and relaunches the same executable and content profile. It does **not** save game progress: save in the game first and wait for saving to finish. A settings-write or launch failure keeps the current session running.
 
 Display settings separate **Aspect ratio**, **Display resolution** and **Internal resolution**. Aspect ratio preserves the original picture or stretches it to the display; it does not add an ultrawide field of view. Borderless fullscreen uses the desktop resolution, while windowed mode offers size presets. Internal resolution offers uniform 1–8× native scaling, independent of window size.
 
 Graphics offers **30 FPS (original)** and **60 FPS (experimental)**. Save settings and restart to apply the frame-rate target. Keep VSync enabled. The 60 FPS option uses the game's existing elapsed-time scheduler; first-use shader/asset loading hitches may remain, and videos retain their own playback rate. Full-game compatibility at 60 FPS is not yet verified.
 
-The published v1.0.0-rc2 download still uses separate F4 settings and F7 achievements windows; the unified menu and 60 FPS option are source-build changes pending a new release.
+Save backups, settings restart and menu pause pass automated host tests; their in-game integration and pause behavior during cutscenes still need verification. This is a release candidate.
 
 The release omits the diagnostic/recovery menu, Save Anywhere, Safe Step and trace recorders. The SDK debug-overlay and console shortcuts are unregistered. Normal runtime error logging remains available.
 

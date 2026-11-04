@@ -78,7 +78,14 @@ Publish matching LGPL source/relink materials alongside the playable ZIP; see
 `release/COMPLIANCE.md`. The SDK source changes and link inputs must correspond
 to the DLLs actually shipped, rather than another release's binaries.
 
-## Verified for rc2
+## Verified for rc3
+
+- Fourteen host regression checks pass, including save backup retention, restore recovery after interruption, process restart handoff and the menu pause hooks.
+- Diagnostics and timing experiments are disabled in the public Release build.
+- Save backups, settings restart and menu pause still need in-game verification, including pause behavior during cutscenes.
+- The SDK binaries are unchanged from rc2; its matching LGPL source/relink archive also applies to rc3.
+
+## Previously verified for rc2
 
 - Ten host regression checks and the asset/profile suite pass.
 - The orb test also compiles without any diagnostic headers.

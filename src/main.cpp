@@ -8,6 +8,8 @@
 #include "fiber_lr.h"
 #include "frame_counter_hook.h"
 #include "frame_rate.h"
+#include "menu_pause_hook.h"
+#include "save_backup_hook.h"
 #if IU_ENABLE_TIMING_EXPERIMENT
 #include "frame_timing_experiment.h"
 #endif
@@ -23,6 +25,13 @@ REXCVAR_DEFINE_BOOL(asset_setup, false, "Content",
 
 REXCVAR_DEFINE_BOOL(profile_manager, false, "Content",
                    "Open Content Profile Manager")
+    .lifecycle(rex::cvar::Lifecycle::kInitOnly);
+
+REXCVAR_DEFINE_STRING(restart_profile, "", "Content", "Internal restart content profile")
+    .lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(restart_wait_handle, "", "Content", "Internal restart process handoff")
+    .lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(restore_backup, "", "Content", "Internal backup selected for startup restore")
     .lifecycle(rex::cvar::Lifecycle::kInitOnly);
 
 #if IU_ENABLE_DIAGNOSTICS

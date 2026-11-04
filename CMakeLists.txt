@@ -18,6 +18,7 @@ include(generated/rexglue.cmake)
 set(INFINITEUNDISCOVERY_SOURCES
     src/main.cpp
     src/player_options.cpp
+    src/save_backups.cpp
     src/asset_setup.cpp
     src/asset_dlc.cpp
     src/portable_setup.cpp
@@ -32,6 +33,14 @@ option(IU_ENABLE_DIAGNOSTICS "Include developer tracing and recovery tools" OFF)
 option(IU_ENABLE_TIMING_EXPERIMENT "Record private frame-timing samples" OFF)
 if(IU_BUILD_SETUP_TESTS)
     enable_testing()
+    add_executable(iu_menu_pause_tests tests/menu_pause_tests.cpp)
+    add_test(NAME menu_pause COMMAND iu_menu_pause_tests)
+    set_tests_properties(menu_pause PROPERTIES TIMEOUT 15)
+    add_executable(iu_save_backups_tests tests/save_backups_tests.cpp src/save_backups.cpp)
+    target_compile_definitions(iu_save_backups_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_link_libraries(iu_save_backups_tests PRIVATE bcrypt)
+    rexglue_apply_target_settings(iu_save_backups_tests)
+    add_test(NAME save_backups_and_restart COMMAND iu_save_backups_tests)
     add_executable(iu_menu_settings_tests tests/menu_settings_tests.cpp src/player_options.cpp)
     target_link_libraries(iu_menu_settings_tests PRIVATE rex::runtime)
     target_compile_definitions(iu_menu_settings_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)

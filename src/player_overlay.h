@@ -1,6 +1,7 @@
 #pragma once
 #include "controller_driver.h"
 #include "frame_counter.h"
+#include "menu_pause.h"
 #include <chrono>
 #include <rex/ui/imgui_dialog.h>
 #include <imgui.h>
@@ -44,8 +45,9 @@ class PlayerOverlay final : public rex::ui::ImGuiDialog {
     if(performance) {
       ImGui::SetNextWindowPos(ImVec2(12,12)); ImGui::SetNextWindowBgAlpha(0.75f);
       if(ImGui::Begin("Performance##player",nullptr,ImGuiWindowFlags_NoDecoration|ImGuiWindowFlags_AlwaysAutoResize|ImGuiWindowFlags_NoInputs|ImGuiWindowFlags_NoNav|ImGuiWindowFlags_NoFocusOnAppearing)) {
-        ImGui::Text("Game: %.1f FPS",fps_);
-        if(performance==2) {
+        if(iu::player::menu_pause.IsPaused()) ImGui::TextUnformatted("Game paused");
+        else ImGui::Text("Game: %.1f FPS",fps_);
+        if(performance==2 && !iu::player::menu_pause.IsPaused()) {
           if(fps_>0) ImGui::Text("Average frame: %.2f ms",1000.0/fps_);
           else ImGui::TextUnformatted("Waiting for game frames");
         }

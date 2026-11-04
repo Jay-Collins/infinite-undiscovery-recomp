@@ -2,6 +2,6 @@
 
 namespace iu {
 
-inline constexpr const char* kProjectVersion = "v1.0.0-rc2";
+inline constexpr const char* kProjectVersion = "v1.0.0-rc3";
 
 }  // namespace iu

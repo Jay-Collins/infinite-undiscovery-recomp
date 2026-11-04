@@ -1,5 +1,5 @@
 # Build and package a fresh public release. Supply game files and build the SDK first.
-param([ValidateRange(1,128)][int]$Jobs=8)
+param([ValidateRange(1,128)][int]$Jobs=8, [string]$OutputRoot='')
 $ErrorActionPreference='Stop'
 $repo=Split-Path -Parent $PSScriptRoot
 . (Join-Path $repo 'build-env.ps1')
@@ -13,4 +13,4 @@ if (Test-Path -LiteralPath $build) { throw 'Release build directory must be new'
 if ($LASTEXITCODE -ne 0) { throw 'Release configure failed' }
 & cmake --build $build --target infinite_undiscovery --parallel $Jobs
 if ($LASTEXITCODE -ne 0) { throw 'Release build failed' }
-& (Join-Path $PSScriptRoot 'package-release.ps1') -BuildDir $build -SdkProvenance $provenance
+& (Join-Path $PSScriptRoot 'package-release.ps1') -BuildDir $build -SdkProvenance $provenance -OutputRoot $OutputRoot
