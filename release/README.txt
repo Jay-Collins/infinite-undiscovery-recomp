@@ -1,4 +1,4 @@
-Infinite Undiscovery Recomp v1.0.0-rc3 (Jay-Collins fork)
+Infinite Undiscovery Recomp v1.0.0-rc4 (Jay-Collins fork)
 ======================================================
 
 Download and source:

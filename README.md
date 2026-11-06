@@ -13,7 +13,7 @@ You must supply your own legally obtained game media. Game executables, disc dat
 
 ## Downloads and setup
 
-Download the [v1.0.0-rc3 Windows x64 release](https://github.com/Jay-Collins/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc3) for this fork's orb fix, unified menu, save backups, settings restart action and menu pause. The playable ZIP contains no game files, saves or developer diagnostic tools. The separate LGPL source/relink archive is for developers and is not needed to play.
+Download the [v1.0.0-rc4 Windows x64 release](https://github.com/Jay-Collins/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc4) for this fork's orb fix, unified menu, save backups, settings restart action, menu pause and save-in-progress protection. The playable ZIP contains no game files, saves or developer diagnostic tools. The separate LGPL source/relink archive is for developers and is not needed to play.
 
 Requirements for the Windows build:
 
@@ -44,7 +44,7 @@ Use **F4 → Game → Save backups** to choose a timestamped backup and **Restor
 
 ## Utility controls
 
-Open the unified menu with **F4** or **Back + Start** on an Xbox-compatible controller. The controls and tabs below are included in **v1.0.0-rc3**. Save-in-progress protection is a newer change on `main`, described separately below.
+Open the unified menu with **F4** or **Back + Start** on an Xbox-compatible controller. The controls, tabs and save-in-progress protection below are included in **v1.0.0-rc4**.
 
 | Shortcut | Action |
 | --- | --- |
@@ -81,11 +81,11 @@ Opening any tab requests a gameplay pause at the next frame boundary and blocks 
 - **Internal resolution** offers uniform **1–8×** native rendering scale, independent of window size. Save settings and restart to apply it.
 - **Frame rate** offers **30 FPS (original)** or **60 FPS (experimental)** and requires a restart. Keep VSync enabled. First-use shader/asset hitches may remain; videos retain their own playback rate.
 
-### Save-in-progress protection — source builds only
+### Save-in-progress protection
 
-Current `main` blocks restart, backup restore, profile switching and normal quit while save data is in use, including queued save opens and automatic backup completion. This also covers **F10/F12**, **Alt+F4** and the window close button. The menu explains why actions are unavailable; retry after the operation finishes. Blocked exit requests are not queued.
+Restart, backup restore, profile switching and normal quit are blocked while save data is in use, including queued save opens and automatic backup completion. This also covers **F10/F12**, **Alt+F4** and the window close button. The menu explains why actions are unavailable; retry after the operation finishes. Blocked exit requests are not queued.
 
-If F4 is open, active save/load work is allowed to finish before gameplay pauses. **This protection is not included in the rc3 download.** [Implementation and validation](docs/SAVE-EXIT-PROTECTION.md).
+If F4 is open, active save/load work is allowed to finish before gameplay pauses. This protection was added in **rc4**. [Implementation and validation](docs/SAVE-EXIT-PROTECTION.md).
 
 Public builds omit the developer diagnostic/recovery menu, Save Anywhere, Safe Step and trace recorders. SDK debug-overlay and console shortcuts are unregistered; normal runtime error logging remains available.
 

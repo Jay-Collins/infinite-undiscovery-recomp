@@ -78,12 +78,12 @@ Publish matching LGPL source/relink materials alongside the playable ZIP; see
 `release/COMPLIANCE.md`. The SDK source changes and link inputs must correspond
 to the DLLs actually shipped, rather than another release's binaries.
 
-## Verified for rc3
+## Verified for rc4
 
-- Fourteen host regression checks pass, including save backup retention, restore recovery after interruption, process restart handoff and the menu pause hooks.
+- Fifteen host regression checks pass, including save backup retention, restore recovery after interruption, process restart handoff, menu pause and save-in-progress exit protection.
 - Diagnostics and timing experiments are disabled in the public Release build.
-- Save backups, settings restart and menu pause still need in-game verification, including pause behavior during cutscenes.
-- The SDK binaries are unchanged from rc2; its matching LGPL source/relink archive also applies to rc3.
+- Save backups, settings restart, menu pause and save-in-progress protection still need in-game verification, including pause behavior during cutscenes.
+- The SDK binaries are unchanged from rc2; its matching LGPL source/relink archive also applies to rc4.
 
 ## Previously verified for rc2
 
