@@ -7,6 +7,7 @@
 #include "player_options.h"
 #include "save_backups.h"
 #include "save_activity.h"
+#include "save_anywhere_state.h"
 #include "version.h"
 #include <rex/ui/imgui_dialog.h>
 #include <rex/ui/immediate_drawer.h>
@@ -295,6 +296,7 @@ class GameMenu final : public rex::ui::ImGuiDialog {
 
   void ResetTab(bool controls) {
     for (const auto& setting : kMenuSettings) {
+      if (setting.group == 7) continue; // Game options do not belong to either resettable tab.
       if ((setting.group >= 3) != controls) continue;
       if (const auto* flag = rex::cvar::GetFlagInfo(setting.name)) {
         // Apply window settings together after resetting other settings.
@@ -437,6 +439,22 @@ class GameMenu final : public rex::ui::ImGuiDialog {
               ImGui::SeparatorText("Current session");
               ImGui::Text("Content profile: %s", profile_.c_str());
               ImGui::TextWrapped("Opening this menu pauses gameplay at the next frame boundary. Closing it resumes play. Background music continues.");
+              Group("New game", 7);
+              ImGui::TextWrapped("Unlock Hard and Infinity for new games. Existing saves keep their current difficulty. Reopen New Game's difficulty selection after changing this option; no restart is needed.");
+              ImGui::TextDisabled("Use Save settings to keep this option for the current content profile.");
+              ImGui::SeparatorText("Save game");
+              auto save_state=iu::save_anywhere::requests.Get().availability;
+              if(iu::saves::activity.Busy() || iu::saves::activity.ExitReserved())
+                save_state=iu::save_anywhere::Availability::Saving;
+              const bool save_ready=save_state==iu::save_anywhere::Availability::Ready && iu::player::menu_pause.IsPaused();
+              ImGui::BeginDisabled(!save_ready);
+              if(ImGui::Button("Save Anywhere")) {
+                if(iu::save_anywhere::requests.Request()) close_();
+              }
+              ImGui::EndDisabled();
+              ImGui::TextWrapped("%s",iu::save_anywhere::Explain(save_state));
+              ImGui::TextWrapped("Use during normal exploration. Weapons must be sheathed and the party must be out of combat. Unavailable during cutscenes, scripted events, transitions, dialogue or other game menus.");
+              ImGui::TextDisabled("Choose a slot in the game's save screen. This menu will close.");
               DrawBackups();
               ImGui::Spacing();
               ImGui::SeparatorText("Content & profiles");

@@ -16,9 +16,10 @@ struct MenuSetting {
   const char* name;
   const char* label;
   const char* help;
-  int group;  // -1 custom display widgets; 0 display, 1 graphics, 2 audio, 3 controls, 4 bindings
+  int group;  // -1 custom display widgets; 0 display, 1 graphics, 2 audio, 3-6 controls, 7 game
 };
 inline constexpr MenuSetting kMenuSettings[] = {
+    {"iu_unlock_difficulties", "Unlock all difficulties", "Make Hard and Infinity available when starting a new game. Reopen New Game's difficulty selection after changing this option.", 7},
     {"fullscreen", "Fullscreen", "Borderless fullscreen uses the desktop resolution.", 0},
     {"monitor", "", "", -1},
     {"iu_ui_scale", "UI scale", "Size of the overlay text and controls.", 0},

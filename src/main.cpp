@@ -8,6 +8,8 @@
 #include "fiber_lr.h"
 #include "frame_counter_hook.h"
 #include "frame_rate.h"
+#include "difficulty_unlock.h"
+#include "save_anywhere.h"
 #include "menu_pause_hook.h"
 #include "save_backup_hook.h"
 #if IU_ENABLE_TIMING_EXPERIMENT

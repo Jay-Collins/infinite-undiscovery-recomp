@@ -56,7 +56,10 @@ struct CommunityDebugActions {
                             : "Save Anywhere: Dialog already active; complete or cancel it first");
       return false;
     }
-    iu::save_anywhere::Request();
+    if (!iu::save_anywhere::Request()) {
+      SetFeedback(false, iu::save_anywhere::Explain(iu::save_anywhere::requests.Get().availability));
+      return false;
+    }
     SetFeedback(true, es ? "Guardar en Cualquier Lugar: Solicitud iniciada"
                          : "Save Anywhere: Request initiated");
     return true;
@@ -462,15 +465,6 @@ class CommunityDebugDialog : public rex::ui::ImGuiDialog {
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
           ImGui::SetTooltip(is_es ? "Ya hay un diálogo de guardado activo. Complétalo o cancélalo primero."
                                   : "A Save Anywhere dialog is already active. Complete or cancel it first.");
-        }
-        if (ImGui::SmallButton(is_es ? "Resetear Guardado (Limpieza segura)" : "Reset Save Anywhere (Safe Cleanup)")) {
-          iu::save_anywhere::ResetActive();
-          SetFeedback(true, is_es ? "Guardar en Cualquier Lugar: Limpieza solicitada (modal e input restaurados)"
-                                  : "Save Anywhere: Cleanup requested (modal/input safely restored)");
-        }
-        if (ImGui::IsItemHovered()) {
-          ImGui::SetTooltip(is_es ? "Ejecuta la limpieza segura del estado modal y restaura el control del personaje"
-                                  : "Executes authoritative modal state cleanup and restores player actor input");
         }
       } else {
         if (ImGui::Button(ActionLabel(is_es ? "Guardar en Cualquier Lugar" : "Save Anywhere", "bind_iu_save_anywhere").c_str(), ImVec2(-1, 0))) {

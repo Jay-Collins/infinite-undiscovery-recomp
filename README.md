@@ -13,7 +13,7 @@ You must supply your own legally obtained game media. Game executables, disc dat
 
 ## Downloads and setup
 
-Download the [v1.0.0-rc4 Windows x64 release](https://github.com/Jay-Collins/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc4) for this fork's orb fix, unified menu, save backups, settings restart action, menu pause and save-in-progress protection. The playable ZIP contains no game files, saves or developer diagnostic tools. The separate LGPL source/relink archive is for developers and is not needed to play.
+Download the [v1.0.0-rc5 Windows x64 release](https://github.com/Jay-Collins/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc5) for this fork's orb fix, unified menu, Save Anywhere, optional difficulty unlocks, save backups, settings restart action, menu pause and save-in-progress protection. The playable ZIP contains no game files, saves or developer diagnostic tools. The separate LGPL source/relink archive is for developers and is not needed to play.
 
 Requirements for the Windows build:
 
@@ -44,7 +44,7 @@ Use **F4 → Game → Save backups** to choose a timestamped backup and **Restor
 
 ## Utility controls
 
-Open the unified menu with **F4** or **Back + Start** on an Xbox-compatible controller. The controls, tabs and save-in-progress protection below are included in **v1.0.0-rc4**.
+Open the unified menu with **F4** or **Back + Start** on an Xbox-compatible controller. The controls and options below are included in **v1.0.0-rc5**.
 
 | Shortcut | Action |
 | --- | --- |
@@ -61,11 +61,15 @@ Use the **D-pad or left stick** to navigate, **A** to select, and **B** to back 
 | **Settings** | Display and monitor selection, aspect ratio, display and internal resolution, UI scale, FPS/frame-time display, 30/60 FPS target, VSync, anti-aliasing, dithering, master volume and mute |
 | **Controls** | Controller button mapping, stick deadzones, vibration strength, stick swapping, camera Y inversion, keyboard/mouse emulation, mouse sensitivity and keyboard bindings |
 | **Achievements** | Achievement list, search, unlocked-only filter, unlock count and earned gamerscore |
-| **Game** | Current content profile, timestamped save backups, restore and restart, Content Profile Manager and quit actions |
+| **Game** | Save Anywhere, unlock all difficulties for new games, current content profile, timestamped save backups, restore and restart, Content Profile Manager and quit actions |
 
 Opening any tab requests a gameplay pause at the next frame boundary and blocks gameplay input. Closing the menu resumes play. Background music continues; the footer indicates when the game has paused.
 
 ### Saving settings and restarting
+
+**F4 → Game → Unlock all difficulties** makes Hard and Infinity selectable from the start of a new game. It defaults to off. Enable it before opening New Game's difficulty selection, or back out and reopen that screen after changing it. No restart is needed. Use **Save settings** to keep the option for the current content profile. Existing saves keep their difficulty; turning the option off restores the game's normal unlock requirements without removing naturally earned unlocks.
+
+**F4 → Game → Save Anywhere** opens the game's normal save-slot screen and closes F4. Choose a slot and confirm in the game; clicking the overlay button alone does not save progress. **Use it during normal exploration, with weapons sheathed and the party out of combat.** It is disabled during combat, cutscenes, scripted events, transitions, dialogue, other native menus and active save operations. Existing save backups and save-in-progress protection also apply to these saves.
 
 - **Save settings** keeps changes for the active content profile. Closing the menu alone does not save them.
 - **Save settings and restart...** appears when a changed setting requires a restart. After confirmation, it saves settings and relaunches the same content profile. A settings-write or launch failure leaves the current session running.
@@ -87,11 +91,13 @@ Restart, backup restore, profile switching and normal quit are blocked while sav
 
 If F4 is open, active save/load work is allowed to finish before gameplay pauses. This protection was added in **rc4**. [Implementation and validation](docs/SAVE-EXIT-PROTECTION.md).
 
-Public builds omit the developer diagnostic/recovery menu, Save Anywhere, Safe Step and trace recorders. SDK debug-overlay and console shortcuts are unregistered; normal runtime error logging remains available.
+Public builds omit the developer diagnostic/recovery menu, Safe Step and trace recorders. Save Anywhere is accessed through F4; the old diagnostic F6 shortcut is not enabled. SDK debug-overlay and console shortcuts are unregistered; normal runtime error logging remains available.
 
 ## Compatibility
 
 Save backups, settings restart, menu pause and the newer save-in-progress protection pass automated host tests. Their in-game integration, including pause behavior during cutscenes, still needs verification. Full-game compatibility of the experimental 60 FPS option is also unverified.
+
+Save Anywhere was confirmed working by the user during safe gameplay. Its combat/cutscene guards and the new-game difficulty override pass automated tests; live checks across different combat and cutscene scenarios and manual difficulty-selection verification remain pending. See [Save Anywhere validation](docs/SAVE-ANYWHERE.md) and [difficulty unlock validation](docs/DIFFICULTY-UNLOCK.md).
 
 Full-game completion and later Disc 2 progression have not been verified in this fork. The [upstream release notes](https://github.com/doc-haz/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc1) report a successful in-game Disc 1 to Disc 2 transition; we have not independently repeated that test here.
 

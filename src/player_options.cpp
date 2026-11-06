@@ -4,6 +4,7 @@
 REXCVAR_DEFINE_INT32(iu_ui_scale, 100, "Player", "Menu scale percentage").range(75, 200);
 REXCVAR_DEFINE_INT32(iu_master_volume, 100, "Player", "Master volume percentage").range(0, 100);
 REXCVAR_DEFINE_INT32(iu_performance, 0, "Player", "Performance display: 0 off, 1 FPS, 2 FPS and frame time").range(0, 2);
+REXCVAR_DEFINE_BOOL(iu_unlock_difficulties, false, "Player", "Make all difficulties available when starting a new game");
 REXCVAR_DEFINE_STRING(iu_frame_rate, "30", "Player", "Frame rate target; 60 FPS is experimental. Save and restart to apply.")
     .allowed({"30", "60"}).lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
 REXCVAR_DEFINE_INT32(iu_left_deadzone, 0, "Player", "Left stick radial deadzone percentage").range(0, 50);

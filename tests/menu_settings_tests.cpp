@@ -35,6 +35,8 @@ int main() {
     iu::ui::MenuSettings settings;
     settings.CaptureStartup();
     Check(!settings.Unsaved() && !settings.NeedsRestart(), "Clean initial state");
+    Check(rex::cvar::SetFlagByName("iu_unlock_difficulties", "true"), "Enable all new-game difficulties");
+    Check(settings.Unsaved() && !settings.NeedsRestart(), "Difficulty unlock is a live, saved setting");
     Check(rex::cvar::SetFlagByName("fullscreen", "false"), "Change live setting");
     Check(settings.Unsaved() && !settings.NeedsRestart(), "Live changes need saving but not restart");
     Check(rex::cvar::SetFlagByName("window_width", "1280"), "Change restart setting");
@@ -44,6 +46,7 @@ int main() {
     Check(!settings.Unsaved() && settings.NeedsRestart(), "Saving must not clear restart state");
     auto saved = toml::parse_file(path.string());
     Check(saved["fullscreen"].value<bool>() == false, "Boolean round-trip");
+    Check(saved["iu_unlock_difficulties"].value<bool>() == true, "Persist difficulty unlock for the profile");
     Check(saved["window_width"].value<int>() == 1280, "Integer round-trip");
     Check(saved["user_data_root"].value<std::string>() == windows_path, "Retain and escape Windows paths");
     Check(saved["custom_engine_option"].value<int>() == 42, "Retain unknown manual options");
@@ -54,6 +57,9 @@ int main() {
     saved = toml::parse_file(path.string());
     Check(saved["window_width"].value<int>() == 0, "Defaults replace stale persisted overrides");
     Check(!settings.NeedsRestart(), "Restoring startup value clears restart notice");
+    Check(rex::cvar::SetFlagByName("iu_unlock_difficulties", "false"), "Restore normal difficulty unlocks");
+    Check(settings.Save(path, error), error.c_str());
+    Check(toml::parse_file(path.string())["iu_unlock_difficulties"].value<bool>() == false, "Disabling must replace persisted unlock");
 
     Check(rex::cvar::GetFlagByName("iu_frame_rate") == "30", "Original frame rate is the default");
     Check(!rex::cvar::SetFlagByName("iu_frame_rate", "45"), "Reject unsupported frame divisors");

@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include "build_config.h"
 #if IU_ENABLE_DIAGNOSTICS
-#include "save_anywhere.h"
 #include "recovery_move.h"
 #include "orb_interaction_diag.h"
 #endif
@@ -20,7 +19,6 @@ extern "C" void rexcrt_SwitchToFiber(PPCContext& ctx, uint8_t* base) {
   }();
 
 #if IU_ENABLE_DIAGNOSTICS
-  iu::save_anywhere::PollAndDispatch(ctx, base);
   iu::recovery_move::PollAndDispatch(ctx, base);
   iu::orb_interaction::poll(base);
 #endif

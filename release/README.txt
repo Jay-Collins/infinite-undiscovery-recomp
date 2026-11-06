@@ -1,4 +1,4 @@
-Infinite Undiscovery Recomp v1.0.0-rc4 (Jay-Collins fork)
+Infinite Undiscovery Recomp v1.0.0-rc5 (Jay-Collins fork)
 ======================================================
 
 Download and source:
@@ -53,7 +53,18 @@ restart to apply. Keep VSync enabled. First-use shader/asset loading hitches
 may remain; videos retain their own playback rate. Full-game compatibility
 at 60 FPS is not yet verified.
 
-Developer diagnostics, trace recorders, Save Anywhere and movement/recovery
+F4 > Game > Unlock all difficulties makes Hard and Infinity available for
+new games. It defaults to off. Reopen New Game's difficulty selection after
+changing it; no restart is needed. Save settings keeps it for this profile.
+Existing saves keep their difficulty. Turning it off restores normal unlocks.
+
+F4 > Game > Save Anywhere opens the normal save-slot screen. Use it during
+normal exploration with weapons sheathed and the party out of combat. It is
+disabled during cutscenes, events, transitions, dialogue and other game menus.
+Choose a slot and confirm in the game; clicking the overlay button alone does
+not save progress. Save backups and save-in-progress protection still apply.
+
+Developer diagnostics, trace recorders and movement/recovery
 tools are omitted. The runtime debug overlay and console shortcuts are
 unregistered. Normal runtime error logging remains available.
 

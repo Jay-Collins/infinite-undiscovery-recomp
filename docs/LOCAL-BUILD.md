@@ -78,12 +78,13 @@ Publish matching LGPL source/relink materials alongside the playable ZIP; see
 `release/COMPLIANCE.md`. The SDK source changes and link inputs must correspond
 to the DLLs actually shipped, rather than another release's binaries.
 
-## Verified for rc4
+## Verified for rc5
 
-- Fifteen host regression checks pass, including save backup retention, restore recovery after interruption, process restart handoff, menu pause and save-in-progress exit protection.
+- Seventeen host regression checks pass, including Save Anywhere safety/dispatch, difficulty unlock scoping and persistence, save backup retention, restore recovery after interruption, process restart handoff, menu pause and save-in-progress exit protection.
 - Diagnostics and timing experiments are disabled in the public Release build.
 - Save backups, settings restart, menu pause and save-in-progress protection still need in-game verification, including pause behavior during cutscenes.
-- The SDK binaries are unchanged from rc2; its matching LGPL source/relink archive also applies to rc4.
+- The user confirmed Save Anywhere during safe gameplay. Broader live combat/cutscene checks and manual difficulty-selection verification remain pending; see `SAVE-ANYWHERE.md` and `DIFFICULTY-UNLOCK.md`.
+- The SDK binaries are unchanged from rc2; its matching LGPL source/relink archive also applies to rc5.
 
 ## Previously verified for rc2
 

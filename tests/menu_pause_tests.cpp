@@ -8,6 +8,7 @@
 #include <thread>
 
 struct PPCContext { uint32_t result = 0; };
+namespace iu::save_anywhere { void PollAndDispatch(PPCContext&, uint8_t*) {} }
 #include "../src/menu_pause_hook.h"
 
 using namespace std::chrono_literals;
