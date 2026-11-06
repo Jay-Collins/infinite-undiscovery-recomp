@@ -28,7 +28,7 @@ To use a portable build:
 3. Add Disc 2, either during initial setup or later through the Content Profile Manager. It is needed for later progression.
 4. Optionally import your **A Voucher** and **B Voucher** DLC packages in STFS format.
 
-The wizard validates the media and identifies its edition automatically. Supported profiles are **USA, USA-UNDUB, EUROPE, JAPAN and ASIA**; arbitrary modified media or other undub variants are not guaranteed to pass validation. Setup and the utility menu offer English and Spanish.
+The wizard validates the media and identifies its edition automatically. Supported profiles are **USA, USA-UNDUB, EUROPE, JAPAN and ASIA**; arbitrary modified media or other undub variants are not guaranteed to pass validation. Setup and the Content Profile Manager offer English and Spanish; the F4 overlay is currently in English.
 
 See [Asset Setup](ASSET_SETUP.md) for the detailed workflow and troubleshooting.
 
@@ -44,32 +44,54 @@ Use **F4 → Game → Save backups** to choose a timestamped backup and **Restor
 
 ## Utility controls
 
-Player utilities share one tabbed menu:
+Open the unified menu with **F4** or **Back + Start** on an Xbox-compatible controller. The controls and tabs below are included in **v1.0.0-rc3**. Save-in-progress protection is a newer change on `main`, described separately below.
 
-| Key | Action |
+| Shortcut | Action |
 | --- | --- |
-| F4 | Open / close the unified menu |
-| F7 | Open its Achievements tab |
-| F10 | Return to the Content Profile Manager |
-| F12 | Quit the game (with confirmation) |
+| **F4** | Open or close the menu |
+| **Back + Start** | Open or close the same menu using a controller |
+| **F7** | Open the menu's Achievements tab |
+| **F10** | Return to the Content Profile Manager, after confirmation |
+| **F12** | Quit the game, after confirmation |
 
-The top tabs are **Settings**, **Controls**, **Achievements** and **Game**. Settings cover display, graphics and audio; Controls configures keyboard/mouse emulation. The Game tab provides profile-manager and quit actions. Use **Save settings** to keep changes for the active content profile; starred settings require a restart. Opening the menu pauses gameplay at the next frame boundary and blocks game input; closing it resumes play. This also applies when opening it with Back + Start or F7. Background music continues. The footer shows when the game has reached the pause point.
+Use the **D-pad or left stick** to navigate, **A** to select, and **B** to back out of a selection. Confirmation dialogs provide a **Cancel** button. Menu navigation always uses the original controller layout, even if gameplay buttons are remapped. Mouse and keyboard navigation are also available. To resume gameplay, press **F4**, press **Back + Start**, or select **Return to game**.
 
-When starred settings differ from the running session, **Save settings and restart...** appears. Confirming saves the settings and relaunches the same executable and content profile. It does **not** save game progress: save in the game first and wait for saving to finish. A settings-write or launch failure keeps the current session running.
+| Tab | Available options |
+| --- | --- |
+| **Settings** | Display and monitor selection, aspect ratio, display and internal resolution, UI scale, FPS/frame-time display, 30/60 FPS target, VSync, anti-aliasing, dithering, master volume and mute |
+| **Controls** | Controller button mapping, stick deadzones, vibration strength, stick swapping, camera Y inversion, keyboard/mouse emulation, mouse sensitivity and keyboard bindings |
+| **Achievements** | Achievement list, search, unlocked-only filter, unlock count and earned gamerscore |
+| **Game** | Current content profile, timestamped save backups, restore and restart, Content Profile Manager and quit actions |
 
-Newer source builds also block restart, backup restore, profile switching and normal quit while save data is in use, including queued save opens and automatic backup completion. This covers F10/F12, Alt+F4 and the window close button. The menu explains when actions are unavailable; retry after the operation finishes. F4 temporarily defers pausing so a save or load can finish. This protection is not included in the published rc3 download yet.
+Opening any tab requests a gameplay pause at the next frame boundary and blocks gameplay input. Closing the menu resumes play. Background music continues; the footer indicates when the game has paused.
 
-Display settings separate **Aspect ratio**, **Display resolution** and **Internal resolution**. Aspect ratio preserves the original picture or stretches it to the display; it does not add an ultrawide field of view. Borderless fullscreen uses the desktop resolution, while windowed mode offers size presets. Internal resolution offers uniform 1–8× native scaling, independent of window size.
+### Saving settings and restarting
 
-Graphics offers **30 FPS (original)** and **60 FPS (experimental)**. Save settings and restart to apply the frame-rate target. Keep VSync enabled. The 60 FPS option uses the game's existing elapsed-time scheduler; first-use shader/asset loading hitches may remain, and videos retain their own playback rate. Full-game compatibility at 60 FPS is not yet verified.
+- **Save settings** keeps changes for the active content profile. Closing the menu alone does not save them.
+- **Save settings and restart...** appears when a changed setting requires a restart. After confirmation, it saves settings and relaunches the same content profile. A settings-write or launch failure leaves the current session running.
+- **Reset this tab** restores defaults for Settings or Controls after confirmation. Use **Save settings** afterward to keep those defaults.
+- **Game → Save backups → Restore this backup...** lets you choose a saved version, then confirm **Restore and restart**. See [Saves and portable data](#saves-and-portable-data) for retention and recovery behavior.
 
-Save backups, settings restart and menu pause pass automated host tests; their in-game integration and pause behavior during cutscenes still need verification. This is a release candidate.
+**Saving settings does not save game progress.** Save normally in the game and wait for saving to finish before restarting, switching profiles or quitting. Settings marked with an asterisk require a restart.
 
-The release omits the diagnostic/recovery menu, Save Anywhere, Safe Step and trace recorders. The SDK debug-overlay and console shortcuts are unregistered. Normal runtime error logging remains available.
+### Display and frame rate
 
-Developers can enable the extra tools with `IU_ENABLE_DIAGNOSTICS=ON`; `build-local.ps1` does this for local investigation builds. They are disabled by default and in `release/make-release.ps1`.
+- **Aspect ratio** preserves the original picture or stretches it to the display; it does not add an ultrawide field of view.
+- **Display resolution** controls window size. Borderless fullscreen uses the desktop resolution.
+- **Internal resolution** offers uniform **1–8×** native rendering scale, independent of window size. Save settings and restart to apply it.
+- **Frame rate** offers **30 FPS (original)** or **60 FPS (experimental)** and requires a restart. Keep VSync enabled. First-use shader/asset hitches may remain; videos retain their own playback rate.
+
+### Save-in-progress protection — source builds only
+
+Current `main` blocks restart, backup restore, profile switching and normal quit while save data is in use, including queued save opens and automatic backup completion. This also covers **F10/F12**, **Alt+F4** and the window close button. The menu explains why actions are unavailable; retry after the operation finishes. Blocked exit requests are not queued.
+
+If F4 is open, active save/load work is allowed to finish before gameplay pauses. **This protection is not included in the rc3 download.** [Implementation and validation](docs/SAVE-EXIT-PROTECTION.md).
+
+Public builds omit the developer diagnostic/recovery menu, Save Anywhere, Safe Step and trace recorders. SDK debug-overlay and console shortcuts are unregistered; normal runtime error logging remains available.
 
 ## Compatibility
+
+Save backups, settings restart, menu pause and the newer save-in-progress protection pass automated host tests. Their in-game integration, including pause behavior during cutscenes, still needs verification. Full-game compatibility of the experimental 60 FPS option is also unverified.
 
 Full-game completion and later Disc 2 progression have not been verified in this fork. The [upstream release notes](https://github.com/doc-haz/infinite-undiscovery-recomp/releases/tag/v1.0.0-rc1) report a successful in-game Disc 1 to Disc 2 transition; we have not independently repeated that test here.
 
@@ -82,6 +104,8 @@ A developer build needs a supported game executable, the ReXGlue SDK, CMake 3.25
 The SDK is pinned to **ReXGlue v0.10.0**, revision `f5337cdc947ff6d4c4196737e2c807a48f2a1fc2`, with the checked-in content-header patch for imported save enumeration. SDK DLL hashes are recorded and checked during the build and packaging process.
 
 See [Windows build instructions](docs/LOCAL-BUILD.md) for toolchain setup, SDK compilation, code generation and release packaging. The SDK, generated game code and proprietary game data are excluded from this repository.
+
+Developer tools can be enabled with `IU_ENABLE_DIAGNOSTICS=ON`; `build-local.ps1` enables them for local investigation. They are disabled by default and in `release/make-release.ps1`.
 
 [Project History](PROJECT_HISTORY.md) preserves the upstream development timeline.
 
@@ -101,6 +125,6 @@ Special thanks to:
 
 ## License and attribution
 
-The project code is licensed under the [BSD-3-Clause license](LICENSE). Third-party notices and license texts are in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt) and [LICENSES](LICENSES/). The upstream RC release provides a separate LGPL source and relink compliance archive for its runtime binaries.
+The project code is licensed under the [BSD-3-Clause license](LICENSE). Third-party notices and license texts are in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt) and [LICENSES](LICENSES/). The release page also provides the matching LGPL source/relink archive for the shipped runtime binaries.
 
 Infinite Undiscovery and its logo belong to their respective rights holders. This project is unofficial and is not affiliated with or endorsed by Square Enix, tri-Ace or Microsoft. The code license does not grant rights to the game, its artwork or external dependencies.
